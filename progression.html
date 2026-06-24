@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#3E6E55">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Progression">
+  <link rel="manifest" href="progression.webmanifest">
+  <link rel="apple-touch-icon" href="progression-192.png">
+<title>Progression</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F4F2EC;--card:#FFFFFF;--card2:#FBFAF6;--ink:#1D1C18;--ink-soft:#6B685F;--line:#E4E0D6;
+  --accent:#3E6E55;--accent-soft:#E6EFE9;--warn:#B5604F;
+  --tirage:#5E6A6E;--poussee:#7C6A88;--jambes:#C07A45;--tronc:#4E7C76;--charge:#4F7CA8;--skill:#8C9B7E;
+  --ischio:#9C5A4E;--explo:#B8923A;
+  --r:13px;--shadow:0 1px 2px rgba(29,28,24,.05),0 6px 20px rgba(29,28,24,.05);
+}
+*{box-sizing:border-box}html,body{margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased;padding-bottom:30px}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+.wrap{max-width:560px;margin:0 auto;padding:0 18px}
+.cap{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
+header{padding:22px 0 6px}
+.logo{font-size:23px;font-weight:700;letter-spacing:-.02em}
+.logo small{display:block;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-top:3px}
+.intro{font-size:13px;color:var(--ink-soft);margin:8px 2px 0}
+.sect{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;margin:24px 2px 11px;display:flex;align-items:center;gap:11px}
+.sect::after{content:"";flex:1;height:1px;background:var(--line)}
+.mini{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:14px;margin-bottom:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.chip{padding:8px 13px;border-radius:999px;border:1px solid var(--line);background:var(--paper);font-size:13px;font-weight:500;color:var(--ink-soft)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.allbtn{font-size:11.5px;font-weight:600;color:var(--accent);padding:6px 11px;border:1px solid var(--line);border-radius:999px;background:var(--card);white-space:nowrap;flex:none}
+.gen-btn{width:100%;margin-top:16px;padding:13px;border-radius:11px;background:var(--accent);color:#fff;font-size:14.5px;font-weight:600}
+
+.gen-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:6px 16px;margin-bottom:12px}
+.gen-head{font-size:13px;font-weight:700;padding:11px 0 9px;border-bottom:1px solid var(--line)}
+.gen-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.gen-row:last-child{border-bottom:none}
+.gen-row .pt{width:5px;align-self:stretch;border-radius:4px;flex:none}
+.gen-row .gi{flex:1;min-width:0}
+.gen-row .part{font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;font-weight:700;color:var(--ink-soft)}
+.gen-row .nm{font-size:15px;font-weight:600;margin-top:1px}
+.gen-row .sc{font-size:12.5px;color:var(--ink-soft);margin-top:1px}
+.gen-row .go{font-size:18px;color:var(--ink-soft);flex:none}
+.gen-empty{font-size:13px;color:var(--ink-soft);text-align:center;padding:18px 8px}
+
+.trk{display:flex;gap:13px;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:13px;margin-bottom:9px;box-shadow:var(--shadow);align-items:center}
+.trk:active{transform:scale(.992)}
+.trk .pt{width:5px;align-self:stretch;border-radius:4px;flex:none}
+.trk .tb{flex:1;min-width:0}
+.trk .part{font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;font-weight:700;color:var(--ink-soft)}
+.trk .nm{font-size:16px;font-weight:600;margin-top:1px}
+.trk .lvl{font-size:12.5px;color:var(--ink-soft);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar{height:5px;border-radius:99px;background:var(--line);margin-top:7px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.trk .go{font-size:18px;color:var(--ink-soft);flex:none}
+.locked{opacity:.5}
+
+.p-tirage{background:var(--tirage)}.p-poussee{background:var(--poussee)}.p-jambes{background:var(--jambes)}
+.p-tronc{background:var(--tronc)}.p-charge{background:var(--charge)}.p-skill{background:var(--skill)}
+.p-ischio{background:var(--ischio)}.p-explo{background:var(--explo)}
+
+.overlay{position:fixed;inset:0;background:rgba(29,28,24,.5);z-index:40;display:none;align-items:flex-end;justify-content:center}
+.overlay.open{display:flex}
+.sheet{background:var(--paper);width:100%;max-width:560px;max-height:92vh;overflow-y:auto;border-radius:20px 20px 0 0;padding:0 18px 26px;animation:su .26s cubic-bezier(.2,.7,.2,1)}
+@keyframes su{from{transform:translateY(40px)}to{transform:none}}
+.grip{width:40px;height:4px;border-radius:99px;background:var(--line);margin:10px auto 8px}
+.s-part{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);text-align:center;font-weight:700}
+.s-title{font-size:23px;font-weight:700;text-align:center;margin:2px 0 0}
+.s-progress{font-size:12px;color:var(--ink-soft);text-align:center;margin-top:4px}
+.presc{background:var(--accent-soft);border:1px solid #d4e3da;border-radius:12px;padding:14px;margin:14px 0}
+.presc .pl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.presc .pn{font-size:17px;font-weight:700;margin-top:4px}
+.presc .ps{font-size:20px;font-weight:700;margin-top:6px}
+.presc .pa{font-size:12.5px;color:var(--ink-soft);margin-top:8px}
+.presc .lock{font-size:12.5px;color:var(--warn);margin-top:8px;font-weight:600}
+.log-row{display:flex;gap:8px;margin-top:6px}
+.log-row input{flex:1;font-size:14px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink)}
+.log-row button{padding:0 16px;border-radius:9px;background:var(--accent);color:#fff;font-size:13px;font-weight:600}
+.lvl-btns{display:flex;gap:8px;margin-top:12px}
+.lvl-btns button{flex:1;padding:11px;border-radius:10px;font-size:13px;font-weight:600;border:1px solid var(--line)}
+.lvl-up{background:var(--accent);color:#fff;border-color:var(--accent)}
+.lvl-dn{background:var(--card);color:var(--ink-soft)}
+.ladder{margin-top:6px}
+.lad{display:flex;gap:11px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line)}
+.lad:last-child{border-bottom:none}
+.lad .ln{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--card2);border:1px solid var(--line);color:var(--ink-soft)}
+.lad.done .ln{background:var(--accent);border-color:var(--accent);color:#fff}
+.lad.cur .ln{background:#fff;border:2px solid var(--accent);color:var(--accent)}
+.lad .lt{flex:1}
+.lad.cur .lt b{color:var(--accent)}
+.lad b{font-size:13.5px;font-weight:600;display:block}
+.lad span{font-size:12px;color:var(--ink-soft)}
+.hist{margin-top:14px}
+.hist .he{display:flex;justify-content:space-between;font-size:12.5px;padding:6px 0;border-bottom:1px solid var(--line);color:var(--ink-soft)}
+.hist .he:last-child{border:none}
+.note{font-size:11.5px;color:var(--ink-soft);text-align:center;margin:18px 4px 4px;line-height:1.45}
+</style>
+<style>
+#installBar{position:fixed;top:0;left:0;right:0;z-index:90;background:#3E6E55;color:#fff;display:none;align-items:center;gap:10px;padding:11px 14px;font-size:13.5px;box-shadow:0 2px 12px rgba(0,0,0,.18)}
+#installBar.show{display:flex}
+#installBar b{flex:1;font-weight:600;line-height:1.35}
+#installBar button{border:none;border-radius:8px;padding:8px 12px;font-weight:600;font-size:13px;cursor:pointer}
+#installBtn{background:#fff;color:#3E6E55}
+#installClose{background:transparent;color:#fff;padding:8px 6px;font-size:16px}
+</style>
+</head>
+<body>
+<div id="installBar"><b id="installTxt">Installer l'app sur ton écran d'accueil</b><button id="installBtn">Installer</button><button id="installClose" aria-label="Fermer">✕</button></div>
+<div class="wrap">
+  <header>
+    <div class="logo">Progression<small>monter en niveau, mouvement par mouvement</small></div>
+    <p class="intro">Tu choisis ton matériel, l'app te place au bon échelon et te fait progresser quand tu remplis le critère.</p>
+  </header>
+
+  <div class="sect">Matériel dispo</div>
+  <div class="mini">
+    <div class="cap">Temps disponible</div>
+    <div class="chips" id="progTime"></div>
+    <div class="cap" style="margin-top:15px">Zone à travailler</div>
+    <div class="chips" id="progFocus"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:15px">
+      <span class="cap" style="margin:0">Matériel <span style="text-transform:none;letter-spacing:0;font-weight:400">(poids du corps inclus)</span></span>
+      <button class="allbtn" id="equipAllBtn" onclick="toggleAllEquip()">Tout décocher</button>
+    </div>
+    <div class="chips" id="equipChips"></div>
+    <button class="gen-btn" onclick="generateSession()">Générer une séance de progression</button>
+  </div>
+  <div id="genOut"></div>
+
+  <div class="sect">Mes progressions</div>
+  <div id="trackList"></div>
+  <p class="note">Touche un mouvement pour voir l'échelle, la prescription du jour, journaliser et changer de niveau.</p>
+
+  <div class="sect">Données</div>
+  <div class="mini"><p style="margin:0 0 11px;font-size:13px">Tes niveaux et perfs sont gardés sur cet appareil. Exporte une sauvegarde de temps en temps.</p>
+    <button class="allbtn" style="display:block;width:100%;margin-bottom:9px;padding:11px;border-radius:10px" onclick="exportData()">⬇ Exporter mes données</button>
+    <button class="allbtn" style="display:block;width:100%;padding:11px;border-radius:10px" onclick="document.getElementById('importFile').click()">⬆ Importer une sauvegarde</button>
+    <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importData(this)">
+  </div>
+</div>
+
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeSheet()">
+  <div class="sheet" id="sheet">
+    <div class="grip"></div>
+    <div class="s-part" id="sPart">—</div>
+    <div class="s-title" id="sTitle">—</div>
+    <div class="s-progress" id="sProgress">—</div>
+    <div id="sPresc"></div>
+    <div class="lvl-btns">
+      <button class="lvl-dn" onclick="changeLevel(-1)">◂ Niveau précédent</button>
+      <button class="lvl-up" onclick="changeLevel(1)">Niveau suivant ▸</button>
+    </div>
+    <div class="sect" style="margin:18px 2px 8px">L'échelle</div>
+    <div class="ladder" id="sLadder"></div>
+    <div class="sect" style="margin:18px 2px 8px">Historique</div>
+    <div class="hist" id="sHist"></div>
+  </div>
+</div>
+
+<script>
+const EQUIPS=[['barre','Barre'],['trx','TRX'],['anneaux','Anneaux'],['box','Box'],['kb','Kettlebell'],['gilet','Gilet lesté'],['mb','Med ball'],['slider','Plaquettes']];
+const PARTCLASS={Tirage:'p-tirage',Poussée:'p-poussee',Jambes:'p-jambes',Tronc:'p-tronc',Charge:'p-charge',Skill:'p-skill',Ischios:'p-ischio',Explosivité:'p-explo'};
+
+const TRACKS=[
+ {id:'tractions',name:'Tractions',part:'Tirage',need:['barre','anneaux','trx'],levels:[
+   {n:'Rowing horizontal (TRX/anneaux)',s:'4 × 8-12',a:'Quand 4×12 sont faciles',need:['trx','anneaux']},
+   {n:'Tractions négatives',s:'5 × 1 (descente 5 s)',a:'Quand tu contrôles 5 s sans à-coups',need:['barre']},
+   {n:'Tractions assistées (élastique)',s:'4 × 5-8',a:'Quand 4×8 avec peu d\'aide',need:['barre']},
+   {n:'Tractions strictes',s:'5 × 3',a:'Quand 5×3 propres',need:['barre']},
+   {n:'Tractions',s:'4 × 6-10',a:'Quand 4×10',need:['barre']},
+   {n:'Tractions lestées',s:'5 × 5 (+charge)',a:'Ajoute du poids quand 5×5',need:['barre','gilet']},
+ ]},
+ {id:'pompes',name:'Pompes',part:'Poussée',levels:[
+   {n:'Pompes inclinées (mains sur box)',s:'4 × 10-15',a:'Quand 4×15 faciles',need:['box']},
+   {n:'Pompes complètes',s:'4 × 8-12',a:'Quand 4×12'},
+   {n:'Pompes déclinées (pieds sur box)',s:'4 × 8-12',a:'Quand 4×12',need:['box']},
+   {n:'Pompes lestées',s:'5 × 6-8 (gilet)',a:'Augmente la charge',need:['gilet']},
+   {n:'Pompes archer',s:'4 × 4-6/côté',a:'Vers la pompe à une main'},
+ ]},
+ {id:'dips',name:'Dips',part:'Poussée',need:['box','anneaux'],levels:[
+   {n:'Dips sur box (pieds au sol)',s:'4 × 10-15',a:'Quand 4×15',need:['box']},
+   {n:'Dips complets',s:'4 × 6-10',a:'Quand 4×10',need:['box']},
+   {n:'Dips aux anneaux',s:'4 × 5-8',a:'Quand 4×8 stables',need:['anneaux']},
+   {n:'Dips lestés',s:'5 × 5 (gilet)',a:'Augmente la charge',need:['anneaux','gilet']},
+ ]},
+ {id:'hspu',name:'Pompes piquées → HSPU',part:'Poussée',levels:[
+   {n:'Pompes piquées au sol',s:'4 × 8-12',a:'Quand 4×12 propres'},
+   {n:'Pompes piquées pieds surélevés (box)',s:'4 × 6-10',a:'Quand 4×10',need:['box']},
+   {n:'HSPU négatives au mur (descente 4-5 s)',s:'4 × 3-5',a:'Quand tu contrôles toute la descente'},
+   {n:'HSPU au mur (amplitude partielle)',s:'4 × 3-5',a:'Gagne en amplitude'},
+   {n:'HSPU au mur (amplitude complète)',s:'4 × 3-5',a:'Quand 4×5 propres'},
+   {n:'HSPU au mur en déficit (mains surélevées)',s:'4 × 3-5',a:'Vers le HSPU libre',need:['box']},
+ ]},
+ {id:'pistol',name:'Squat → Pistol',part:'Jambes',levels:[
+   {n:'Squat au poids du corps',s:'4 × 15-20',a:'Quand 4×20 faciles'},
+   {n:'Squat sur box',s:'4 × 10 (box de plus en plus basse)',a:'Descends la box',need:['box']},
+   {n:'Pistol assisté (TRX)',s:'4 × 5/côté',a:'Réduis l\'assistance',need:['trx']},
+   {n:'Pistol sur box',s:'4 × 4/côté',a:'Descends la box',need:['box']},
+   {n:'Pistol complet',s:'4 × 3-5/côté',a:'Quand propre des deux côtés'},
+   {n:'Pistol lesté',s:'4 × 3/côté (KB/gilet)',a:'Augmente la charge',need:['kb','gilet']},
+ ]},
+ {id:'gainage',name:'Gainage (planche)',part:'Tronc',levels:[
+   {n:'Planche sur genoux',s:'4 × 20 s',a:'Quand 4×20 s stables'},
+   {n:'Planche complète',s:'4 × 30 s',a:'Quand 4×45 s'},
+   {n:'Planche 60 s',s:'3 × 60 s',a:'Quand 3×60 s faciles'},
+   {n:'Planche déstabilisée (TRX / lever un bras)',s:'4 × 30 s',a:'Contrôle parfait'},
+   {n:'Planche dynamique (contraction max)',s:'5 × 10 s',a:'Maîtrise de la tension'},
+ ]},
+ {id:'kb_force',name:'Force kettlebell',part:'Charge',need:['kb'],levels:[
+   {n:'Goblet squat',s:'5 × 5 · note la charge',a:'+2-4 kg quand 5×5 propre'},
+   {n:'Soulevé de terre KB',s:'5 × 5 · note la charge',a:'Monte quand 5×5 facile'},
+   {n:'Développé / push press',s:'5 × 5/bras · note la charge',a:'Monte quand 5×5'},
+   {n:'Swing lourd',s:'10 × 10 · note la charge',a:'Monte la cloche'},
+ ]},
+ {id:'ischios',name:'Ischio-jambiers',part:'Ischios',levels:[
+   {n:'Pont fessier 2 jambes (isométrique)',s:'4 × 30-40 s · tenue haute',a:'Quand 4×40 s faciles'},
+   {n:'Pont fessier 1 jambe (isométrique)',s:'4 × 20-30 s/côté',a:'Quand stable des 2 côtés'},
+   {n:'Curl ischio sur plaquettes (excentrique)',s:'4 × 6-8 · descente 3-4 s',a:'Quand 4×8 contrôlés',need:['slider']},
+   {n:'Nordic curl assisté (excentrique partiel)',s:'4 × 4-5 · freine la descente',a:'Quand tu freines toute l\'amplitude'},
+   {n:'Nordic curl excentrique complet',s:'4 × 3-5 · descente 4-5 s',a:'Quand 4×5 contrôlés'},
+   {n:'Nordic curl complet (retour concentrique)',s:'3 × 3-5',a:'Le graal anti-blessure'},
+ ]},
+ {id:'pliometrie',name:'Pliométrie (explosivité)',part:'Explosivité',levels:[
+   {n:'Sauts verticaux contrôlés (atterrissage doux)',s:'4 × 5 · absorbe l\'impact',a:'Quand l\'atterrissage est silencieux'},
+   {n:'Pogo hops (chevilles)',s:'4 × 12 · rebonds courts et vifs',a:'Quand le contact est réactif'},
+   {n:'Sauts sur box',s:'4 × 5',a:'Monte la box',need:['box']},
+   {n:'Sauts profonds (depth jumps)',s:'4 × 4 · rebond immédiat',a:'Réactivité maximale',need:['box']},
+   {n:'Bondissements (bounding)',s:'4 × 20 m',a:'Amplitude + fréquence'},
+   {n:'Sauts à une jambe',s:'4 × 4/côté',a:'Contrôle unilatéral'},
+ ]},
+ {id:'handstand',name:'Équilibre (ATR)',part:'Skill',levels:[
+   {n:'Pike hold (pieds surélevés)',s:'4 × 20-30 s',a:'Épaules solides'},
+   {n:'Wall walk',s:'4 × 3 montées',a:'Monte plus haut'},
+   {n:'ATR au mur (poitrine au mur)',s:'4 × 20-40 s',a:'Quand 45 s'},
+   {n:'ATR au mur (dos au mur)',s:'4 × 20-40 s',a:'Cherche l\'alignement'},
+   {n:'ATR équilibre libre (départ)',s:'tentatives · 5 min',a:'Tenue progressive'},
+ ]},
+];
+
+let equip=new Set(['barre','trx','anneaux','box','kb','gilet','mb','slider']);
+const TIMES=[10,15,20,30,45];let timeCfg=20;
+const FOCUS_LABEL={full:'Full body',haut:'Haut du corps',bas:'Bas du corps'};
+const FOCUS_CATS={full:['Jambes','Poussée','Tirage','Ischios','Tronc','Explosivité','Skill'],haut:['Poussée','Tirage'],bas:['Jambes','Ischios','Explosivité']};
+let focusCfg='full';
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function countForTime(t){return {10:2,15:3,20:4,30:5,45:6}[t]||4;}
+function renderTimeChips(){document.getElementById('progTime').innerHTML=TIMES.map(t=>`<button class="chip ${timeCfg===t?'on':''}" onclick="setTime(${t})">${t} min</button>`).join('');}
+function setTime(t){timeCfg=t;renderTimeChips();}
+function renderFocusChips(){document.getElementById('progFocus').innerHTML=Object.keys(FOCUS_LABEL).map(f=>`<button class="chip ${focusCfg===f?'on':''}" onclick="setFocus('${f}')">${FOCUS_LABEL[f]}</button>`).join('');}
+function setFocus(f){focusCfg=f;renderFocusChips();}
+let STORE=load();
+function load(){try{const r=localStorage.getItem('progression_v1');return r?JSON.parse(r):fresh();}catch(e){return fresh();}}
+function fresh(){return {level:{},hist:{}};}
+function save(){try{localStorage.setItem('progression_v1',JSON.stringify(STORE));}catch(e){}}
+function lvlOf(id){return STORE.level[id]||0;}
+function histOf(id){if(!STORE.hist[id])STORE.hist[id]=[];return STORE.hist[id];}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function exportData(){
+  try{
+    const payload={app:'progression',version:1,exported:new Date().toISOString(),data:{progression_v1:localStorage.getItem('progression_v1')||JSON.stringify(STORE)}};
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);const a=document.createElement('a');
+    a.href=url;a.download='progression-sauvegarde-'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  }catch(e){alert('Export impossible dans cet aperçu. Ouvre le fichier dans un vrai navigateur.');}
+}
+function importData(input){
+  const f=input.files&&input.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const parsed=JSON.parse(e.target.result);
+      const d=parsed&&parsed.data&&parsed.data.progression_v1;
+      if(!d){alert('Fichier non reconnu.');return;}
+      if(parsed.app&&parsed.app!=='progression'&&!confirm('Ce fichier ne vient pas de Progression. Importer quand même ?')){input.value='';return;}
+      if(!confirm('Importer remplacera tes niveaux et perfs actuels. Continuer ?')){input.value='';return;}
+      localStorage.setItem('progression_v1',d);
+      alert('Sauvegarde importée.');location.reload();
+    }catch(err){alert('Échec de lecture du fichier.');}
+    input.value='';
+  };
+  r.readAsText(f);
+}
+
+function trackAvailable(t){return !t.need||t.need.some(e=>equip.has(e));}
+function levelFeasible(lv){return !lv.need||lv.need.some(e=>equip.has(e));}
+
+function renderChips(){
+  document.getElementById('equipChips').innerHTML=EQUIPS.map(([c,l])=>`<button class="chip ${equip.has(c)?'on':''}" onclick="toggleEquip('${c}')">${l}</button>`).join('');
+  const ab=document.getElementById('equipAllBtn');if(ab)ab.textContent=equip.size>0?'Tout décocher':'Tout cocher';
+}
+function toggleEquip(c){if(equip.has(c))equip.delete(c);else equip.add(c);renderChips();renderTracks();}
+function toggleAllEquip(){if(equip.size>0)equip.clear();else EQUIPS.forEach(([c])=>equip.add(c));renderChips();renderTracks();}
+
+function renderTracks(){
+  const list=document.getElementById('trackList');list.innerHTML='';
+  TRACKS.forEach(t=>{
+    const av=trackAvailable(t);const lv=lvlOf(t.id);const cur=t.levels[lv];
+    const el=document.createElement('button');el.className='trk'+(av?'':' locked');
+    el.onclick=()=>av?openSheet(t.id):null;
+    el.innerHTML=`<div class="pt ${PARTCLASS[t.part]}"></div>
+      <div class="tb"><div class="part">${t.part}</div><div class="nm">${t.name}</div>
+        <div class="lvl">Niv. ${lv+1}/${t.levels.length} · ${escapeHtml(cur.n)}</div>
+        <div class="bar"><i style="width:${Math.round((lv+1)/t.levels.length*100)}%"></i></div></div>
+      <div class="go">${av?'›':'🔒'}</div>`;
+    list.appendChild(el);
+  });
+}
+
+function generateSession(){
+  const count=countForTime(timeCfg);
+  const cats=FOCUS_CATS[focusCfg]||FOCUS_CATS.full;
+  const byCat={};cats.forEach(c=>{byCat[c]=shuffle(TRACKS.filter(t=>t.part===c&&trackAvailable(t)));});
+  const out=[];let guard=0;
+  while(out.length<count&&guard<50){
+    let added=false;
+    for(const c of cats){if(out.length>=count)break;const arr=byCat[c];if(arr&&arr.length){out.push(arr.pop());added=true;}}
+    guard++;if(!added)break;
+  }
+  const el=document.getElementById('genOut');
+  if(!out.length){el.innerHTML='<div class="gen-card"><div class="gen-empty">Ajoute du matériel pour générer une séance.</div></div>';return;}
+  el.innerHTML='<div class="gen-card"><div class="gen-head">'+FOCUS_LABEL[focusCfg]+' · '+timeCfg+' min · '+out.length+' mouvements</div>'+out.map(t=>{
+    const lv=lvlOf(t.id);const cur=t.levels[lv];const feas=levelFeasible(cur);
+    return `<div class="gen-row" onclick="openSheet('${t.id}')"><div class="pt ${PARTCLASS[t.part]}"></div>
+      <div class="gi"><div class="part">${t.part} · niv. ${lv+1}</div><div class="nm">${escapeHtml(cur.n)}</div>
+      <div class="sc">${feas?escapeHtml(cur.s):'⚠️ nécessite du matériel non sélectionné'}</div></div>
+      <div class="go">›</div></div>`;
+  }).join('')+'</div>';
+}
+
+let curTrack=null;
+function openSheet(id){curTrack=id;renderSheet();document.getElementById('overlay').classList.add('open');}
+function closeSheet(){document.getElementById('overlay').classList.remove('open');}
+function changeLevel(d){
+  const t=TRACKS.find(x=>x.id===curTrack);const lv=lvlOf(t.id)+d;
+  if(lv<0||lv>=t.levels.length)return;
+  STORE.level[t.id]=lv;save();renderSheet();renderTracks();
+}
+function logPerf(){
+  const inp=document.getElementById('perfInput');const v=inp.value.trim();if(!v)return;
+  const lv=lvlOf(curTrack);const t=TRACKS.find(x=>x.id===curTrack);
+  const d=new Date().toLocaleDateString('fr-CH',{day:'numeric',month:'short'});
+  histOf(curTrack).unshift({d,niv:lv+1,perf:v});save();inp.value='';renderSheet();
+}
+function renderSheet(){
+  const t=TRACKS.find(x=>x.id===curTrack);const lv=lvlOf(t.id);const cur=t.levels[lv];const feas=levelFeasible(cur);
+  document.getElementById('sPart').textContent=t.part;
+  document.getElementById('sTitle').textContent=t.name;
+  document.getElementById('sProgress').textContent='Niveau '+(lv+1)+' sur '+t.levels.length;
+  document.getElementById('sPresc').innerHTML=`<div class="presc">
+    <div class="pl">Prescription du jour</div>
+    <div class="pn">${escapeHtml(cur.n)}</div>
+    <div class="ps">${escapeHtml(cur.s)}</div>
+    <div class="pa">▸ Passe au niveau suivant : ${escapeHtml(cur.a)}</div>
+    ${feas?'':'<div class="lock">⚠️ Ce niveau nécessite du matériel non sélectionné.</div>'}
+    <div class="log-row"><input id="perfInput" type="text" placeholder="Note ta perf (reps, charge, temps…)" maxlength="40"><button onclick="logPerf()">Valider</button></div>
+  </div>`;
+  document.getElementById('sLadder').innerHTML=t.levels.map((l,i)=>{
+    const cls=i<lv?'done':(i===lv?'cur':'');
+    return `<div class="lad ${cls}"><span class="ln">${i<lv?'✓':(i+1)}</span><div class="lt"><b>${escapeHtml(l.n)}</b><span>${escapeHtml(l.s)}</span></div></div>`;
+  }).join('');
+  const h=histOf(t.id);
+  document.getElementById('sHist').innerHTML=h.length?h.slice(0,8).map(e=>`<div class="he"><span>${e.d} · niv. ${e.niv}</span><span>${escapeHtml(e.perf)}</span></div>`).join(''):'<div class="gen-empty">Aucune perf notée pour l\'instant.</div>';
+  document.getElementById('perfInput').addEventListener('keydown',e=>{if(e.key==='Enter')logPerf();});
+}
+
+renderChips();renderTimeChips();renderFocusChips();renderTracks();
+</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js').catch(function(){});});}</script>
+<script>
+(function(){
+  var bar=document.getElementById('installBar'),btn=document.getElementById('installBtn'),txt=document.getElementById('installTxt'),close=document.getElementById('installClose');
+  var dp=null;
+  var standalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+  var dismissed=false;try{dismissed=localStorage.getItem('pwa_install_dismissed')==='1';}catch(e){}
+  function show(){if(!standalone&&!dismissed)bar.classList.add('show');}
+  function hide(){bar.classList.remove('show');}
+  if(close)close.addEventListener('click',function(){hide();try{localStorage.setItem('pwa_install_dismissed','1');}catch(e){}});
+  window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();dp=e;if(btn)btn.style.display='';show();});
+  if(btn)btn.addEventListener('click',function(){if(!dp)return;dp.prompt();dp.userChoice.then(function(){dp=null;hide();});});
+  window.addEventListener('appinstalled',function(){hide();try{localStorage.setItem('pwa_install_dismissed','1');}catch(e){}});
+  var ua=navigator.userAgent||'';
+  var isIOS=/iphone|ipad|ipod/i.test(ua);
+  var isSafari=/safari/i.test(ua)&&!/crios|fxios|edgios/i.test(ua);
+  if(isIOS&&!standalone&&!dismissed){if(btn)btn.style.display='none';if(txt)txt.innerHTML='Pour installer : appuie sur Partager puis « Sur l\'écran d\'accueil »';show();}
+})();
+</script>
+</body>
+</html>
