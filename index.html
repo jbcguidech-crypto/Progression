@@ -136,7 +136,9 @@ header{padding:22px 0 6px}
   <div class="mini">
     <div class="cap">Temps disponible</div>
     <div class="chips" id="progTime"></div>
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:15px">
+    <div class="cap" style="margin-top:15px;margin-bottom:6px">Raccourcis</div>
+    <div class="chips" id="pplShortcuts"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:13px">
       <span class="cap" style="margin:0">Groupes à travailler</span>
       <button class="allbtn" id="muscleAllBtn" onclick="toggleAllMuscles()">Tout décocher</button>
     </div>
@@ -192,7 +194,7 @@ header{padding:22px 0 6px}
 
 <script>
 const EQUIPS=[['barre','Barre'],['trx','TRX'],['anneaux','Anneaux'],['box','Box'],['kb','Kettlebell'],['gilet','Gilet lesté'],['mb','Med ball'],['slider','Plaquettes']];
-const PARTCLASS={Tirage:'p-tirage',Poussée:'p-poussee',Jambes:'p-jambes',Tronc:'p-tronc',Charge:'p-charge',Skill:'p-skill',Ischios:'p-ischio',Explosivité:'p-explo'};
+const PARTCLASS={Tirage:'p-tirage',Poussée:'p-poussee',Jambes:'p-jambes',Tronc:'p-tronc',Charge:'p-charge',Skill:'p-skill',Ischios:'p-ischio',Explosivité:'p-explo',Mollets:'p-jambes',Biceps:'p-tirage','Avant-bras':'p-charge','Épaules':'p-poussee'};
 
 const TRACKS=[
  {id:'tractions',name:'Tractions',part:'Tirage',need:['barre','anneaux','trx'],levels:[
@@ -268,11 +270,76 @@ const TRACKS=[
    {n:'ATR au mur (dos au mur)',s:'4 × 20-40 s',a:'Cherche l\'alignement'},
    {n:'ATR équilibre libre (départ)',s:'tentatives · 5 min',a:'Tenue progressive'},
  ]},
+ {id:'mollets',name:'Mollets',part:'Mollets',levels:[
+   {n:'Mollets debout 2 jambes',s:'4 × 15-20',a:'Quand 4×20 faciles'},
+   {n:'Mollets 1 jambe',s:'4 × 12-15/côté',a:'Quand 4×15'},
+   {n:'Mollets 1 jambe sur marche (amplitude)',s:'4 × 12/côté',a:'Amplitude complète',need:['box']},
+   {n:'Mollets 1 jambe lestés',s:'4 × 10/côté (KB/gilet)',a:'Augmente la charge',need:['kb','gilet']},
+   {n:'Pogo hops / corde à sauter',s:'4 × 30 s',a:'Réactivité tendineuse'},
+ ]},
+ {id:'biceps',name:'Biceps',part:'Biceps',need:['anneaux','trx','kb','barre'],levels:[
+   {n:'Curl aux anneaux / TRX (poids du corps)',s:'4 × 8-12',a:'Quand 4×12 contrôlés',need:['anneaux','trx']},
+   {n:'Curl kettlebell',s:'4 × 8-12',a:'Monte la charge',need:['kb']},
+   {n:'Tractions supination (chin-ups)',s:'4 × 5-8',a:'Quand 4×8',need:['barre','anneaux']},
+   {n:'Chin-ups lestées',s:'5 × 5 (gilet)',a:'Augmente la charge',need:['barre','gilet']},
+ ]},
+ {id:'avantbras',name:'Avant-bras / grip',part:'Avant-bras',need:['barre','anneaux','trx','kb'],levels:[
+   {n:'Suspension passive (dead hang) 2 mains',s:'4 × 20-40 s',a:'Quand 40 s',need:['barre','anneaux','trx']},
+   {n:'Suspension active (épaules engagées)',s:'4 × 20-30 s',a:'Contrôle scapulaire',need:['barre','anneaux','trx']},
+   {n:'Portés lourds (farmer carry KB)',s:'4 × 30-40 m',a:'Monte la charge',need:['kb']},
+   {n:'Suspension lestée',s:'4 × 15-20 s (gilet)',a:'Augmente la charge',need:['barre','gilet']},
+   {n:'Suspension 1 bras (assistée)',s:'4 × 8-12 s/côté',a:'Vers le 1 bras',need:['barre','anneaux']},
+ ]},
+ {id:'pecs_kb',name:'Développé kettlebell (pectoraux)',part:'Poussée',need:['kb'],levels:[
+   {n:'Floor press 2 kettlebells',s:'4 × 8-12',a:'Quand 4×12 propres'},
+   {n:'Squeeze press (serrer les cloches)',s:'4 × 10-12',a:'Tension continue — pec interne'},
+   {n:'Floor press 1 bras',s:'4 × 6-8/côté',a:'Gainage anti-rotation + pec'},
+   {n:'Pompes en déficit (mains sur cloches/plaquettes)',s:'4 × 8-12',a:'Amplitude maximale',need:['kb','slider']},
+   {n:'Floor press lourd',s:'5 × 5',a:'Monte la charge'},
+ ]},
+ {id:'rows',name:'Rowing horizontal (dos)',part:'Tirage',need:['anneaux','trx','barre'],levels:[
+   {n:'Rowing incliné (corps haut)',s:'4 × 10-15',a:'Quand 4×15 faciles'},
+   {n:'Rowing horizontal',s:'4 × 8-12',a:'Corps de plus en plus horizontal'},
+   {n:'Rowing pieds surélevés',s:'4 × 8-12',a:'Quand 4×12',need:['box','anneaux','trx']},
+   {n:'Rowing 1 bras (anneaux/TRX)',s:'4 × 6-8/côté',a:'Vers l\'unilatéral'},
+   {n:'Rowing lesté (gilet)',s:'5 × 6-8',a:'Augmente la charge',need:['gilet']},
+ ]},
+ {id:'lunges',name:'Fentes (quadriceps/fessiers)',part:'Jambes',levels:[
+   {n:'Fentes statiques',s:'4 × 10/côté',a:'Quand 4×10 stables'},
+   {n:'Fentes marchées',s:'4 × 12/côté',a:'Quand 4×12'},
+   {n:'Fentes bulgares (pied arrière surélevé)',s:'4 × 8-10/côté',a:'Quand 4×10',need:['box']},
+   {n:'Fentes lestées (KB/gilet)',s:'4 × 8/côté',a:'Augmente la charge',need:['kb','gilet']},
+   {n:'Fentes sautées',s:'4 × 6/côté',a:'Explosivité'},
+ ]},
+ {id:'shoulders_kb',name:'Épaules kettlebell',part:'Épaules',need:['kb'],levels:[
+   {n:'Développé militaire 2 kettlebells',s:'4 × 6-10',a:'Quand 4×10'},
+   {n:'Développé 1 bras',s:'4 × 6-8/côté',a:'Gainage + épaule'},
+   {n:'Push press',s:'5 × 5',a:'Plus de charge via les jambes'},
+   {n:'Z press (assis, jambes tendues)',s:'4 × 6-8',a:'Strict, sans triche'},
+   {n:'Élévations latérales',s:'4 × 12-15',a:'Deltoïde moyen — léger'},
+ ]},
+ {id:'abs_dyn',name:'Abdos dynamiques',part:'Tronc',levels:[
+   {n:'Crunch / relevés de genoux',s:'4 × 15-20',a:'Quand 4×20'},
+   {n:'Relevés de jambes au sol',s:'4 × 12-15',a:'Jambes tendues'},
+   {n:'Relevés de jambes suspendu (genoux)',s:'4 × 10-12',a:'Vers jambes tendues',need:['barre','anneaux']},
+   {n:'Toes-to-bar / L-sit',s:'4 × 6-10',a:'Amplitude complète',need:['barre','anneaux']},
+   {n:'Dragon flag (négatif)',s:'4 × 4-6',a:'Le sommet'},
+ ]},
 ];
 
 let equip=new Set(['barre','trx','anneaux','box','kb','gilet','mb','slider']);
 const TIMES=[10,15,20,30,45];let timeCfg=20;
-const MUSCLES=[['Jambes','Jambes'],['Poussée','Pecs / poussée'],['Tirage','Dos / tirage'],['Ischios','Ischios'],['Tronc','Tronc'],['Explosivité','Explosivité'],['Skill','Équilibre']];
+const MUSCLES=[
+  ['quads','Quadriceps',['pistol','lunges','pliometrie','kb_force']],
+  ['ischios','Ischios',['ischios','kb_force']],
+  ['epaules','Épaules',['hspu','shoulders_kb','handstand','kb_force']],
+  ['pecs','Pectoraux',['pompes','dips','pecs_kb']],
+  ['biceps','Biceps',['biceps']],
+  ['avantbras','Avant-bras',['avantbras']],
+  ['mollets','Mollets',['mollets','pliometrie']],
+  ['abdos','Abdos',['gainage','abs_dyn']],
+  ['dos','Dorsaux / trapèzes',['tractions','rows']],
+];
 let focusParts=new Set(MUSCLES.map(m=>m[0]));
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 function countForTime(t){return {10:2,15:3,20:4,30:5,45:6}[t]||4;}
@@ -282,7 +349,14 @@ function muscleLabel(k){const m=MUSCLES.find(x=>x[0]===k);return m?m[1]:k;}
 function renderFocusChips(){
   document.getElementById('progFocus').innerHTML=MUSCLES.map(([k,l])=>`<button class="chip ${focusParts.has(k)?'on':''}" onclick="toggleMuscle('${k}')">${l}</button>`).join('');
   const ab=document.getElementById('muscleAllBtn');if(ab)ab.textContent=focusParts.size>0?'Tout décocher':'Tout cocher';
+  renderShortcuts();
 }
+const PRESETS={push:['pecs','epaules'],pull:['dos','biceps','avantbras'],legs:['quads','ischios','mollets'],full:MUSCLES.map(m=>m[0])};
+const PRESET_LABEL={push:'Push',pull:'Pull',legs:'Legs',full:'Full'};
+function eqSet(arr){return arr.length===focusParts.size&&arr.every(x=>focusParts.has(x));}
+function matchPreset(){return Object.keys(PRESETS).find(p=>eqSet(PRESETS[p]))||null;}
+function renderShortcuts(){const cur=matchPreset();const el=document.getElementById('pplShortcuts');if(el)el.innerHTML=Object.keys(PRESET_LABEL).map(p=>`<button class="chip ${cur===p?'on':''}" onclick="setPreset('${p}')">${PRESET_LABEL[p]}</button>`).join('');}
+function setPreset(p){focusParts=new Set(PRESETS[p]);renderFocusChips();}
 function toggleMuscle(k){if(focusParts.has(k))focusParts.delete(k);else focusParts.add(k);renderFocusChips();}
 function toggleAllMuscles(){if(focusParts.size>0)focusParts.clear();else MUSCLES.forEach(([k])=>focusParts.add(k));renderFocusChips();}
 let STORE=load();
@@ -353,18 +427,18 @@ function renderTracks(){
 
 function generateSession(){
   const count=countForTime(timeCfg);
-  const order=['Jambes','Poussée','Tirage','Ischios','Tronc','Explosivité','Skill'];
-  let cats=order.filter(c=>focusParts.has(c));if(!cats.length)cats=order;
-  const byCat={};cats.forEach(c=>{byCat[c]=shuffle(TRACKS.filter(t=>t.part===c&&trackAvailable(t)));});
-  const out=[];let guard=0;
-  while(out.length<count&&guard<50){
+  const order=MUSCLES.map(m=>m[0]);
+  let sel=order.filter(k=>focusParts.has(k));if(!sel.length)sel=order;
+  const pools={};sel.forEach(k=>{const m=MUSCLES.find(x=>x[0]===k);pools[k]=shuffle(m[2].map(id=>TRACKS.find(t=>t.id===id)).filter(t=>t&&trackAvailable(t)));});
+  const used=new Set(),out=[];let guard=0;
+  while(out.length<count&&guard<60){
     let added=false;
-    for(const c of cats){if(out.length>=count)break;const arr=byCat[c];if(arr&&arr.length){out.push(arr.pop());added=true;}}
+    for(const k of sel){if(out.length>=count)break;const arr=pools[k];if(!arr)continue;while(arr.length&&used.has(arr[arr.length-1].id))arr.pop();if(arr.length){const t=arr.pop();used.add(t.id);out.push(t);added=true;}}
     guard++;if(!added)break;
   }
-  const lbl=(cats.length===MUSCLES.length)?'Full body':(cats.length===1?muscleLabel(cats[0]):'Ciblé · '+cats.length+' groupes');
+  const lbl=(sel.length===MUSCLES.length)?'Full body':(sel.length===1?muscleLabel(sel[0]):'Ciblé · '+sel.length+' muscles');
   const el=document.getElementById('genOut');
-  if(!out.length){el.innerHTML='<div class="gen-card"><div class="gen-empty">Sélectionne au moins un groupe et du matériel.</div></div>';return;}
+  if(!out.length){el.innerHTML='<div class="gen-card"><div class="gen-empty">Sélectionne au moins un muscle et le matériel nécessaire.</div></div>';return;}
   el.innerHTML='<div class="gen-card"><div class="gen-head">'+lbl+' · '+timeCfg+' min · '+out.length+' mouvements</div>'+out.map(t=>{
     const lv=lvlOf(t.id);const cur=t.levels[lv];const feas=levelFeasible(cur);
     return `<div class="gen-row" onclick="openSheet('${t.id}')"><div class="pt ${PARTCLASS[t.part]}"></div>
