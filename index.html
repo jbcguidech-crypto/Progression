@@ -152,6 +152,26 @@ body{padding-bottom:86px}
 .en-tag{font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;flex:none}
 .en-tag.fac{background:var(--accent-soft);color:var(--accent)}
 .en-tag.dur{background:rgba(181,96,79,.16);color:var(--warn)}
+.en-blk{display:flex;gap:11px;align-items:baseline;font-size:14px;padding:11px 0;border-bottom:1px solid var(--line);color:var(--ink)}
+.en-blk:last-of-type{border-bottom:none}
+.en-blk .bn{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--accent-soft);color:var(--accent)}
+/* Vue Semaine */
+.wk-range{font-size:13px;color:var(--ink-soft);margin:2px 2px 0}
+.wk-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:14px;margin-bottom:11px}
+.wk-card.lock{opacity:.55}
+.wk-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.wk-name{font-size:15px;font-weight:700}
+.wk-count{font-size:14px;font-weight:700;color:var(--ink-soft);white-space:nowrap}
+.wk-count.done{color:var(--accent)}
+.wk-card .bar{margin-top:10px;height:6px}
+.wk-card .bar i.warn{background:var(--warn)}
+.wk-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:13px}
+.wk-step{display:flex;align-items:center;gap:9px;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);font-weight:700}
+.wk-step button{width:27px;height:27px;border-radius:8px;border:1px solid var(--line);background:var(--card2);font-size:16px;font-weight:700;color:var(--ink)}
+.wk-step b{font-size:14px;color:var(--ink);min-width:14px;text-align:center}
+.wk-gen{padding:9px 15px;border-radius:9px;background:var(--accent);color:#fff;font-size:13px;font-weight:600;flex:none}
+.wk-hint{font-size:12px;color:var(--ink-soft);margin-top:11px;line-height:1.4}
+.wk-hint.ok{color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
@@ -207,28 +227,49 @@ body{padding-bottom:86px}
   </div>
 
   <div class="page" id="page-endurance">
-    <p class="intro">Journalise tes sorties d'endurance — nage, course, rando, vélo, ski-rando, corde. Peu importe la source : tu déclares juste si c'était facile ou dur.</p>
+    <p class="intro">Choisis ta discipline, l'intensité et le temps : l'app te propose une trame. Ou journalise directement ce que tu as fait.</p>
 
-    <div class="sect">Nouvelle séance</div>
+    <div class="sect">Générer une séance</div>
     <div class="mini">
       <div class="cap">Discipline</div>
       <div class="chips" id="enDisc"></div>
       <div class="cap" style="margin-top:15px">Intensité</div>
       <div class="seg" id="enInt"></div>
+      <div class="cap" style="margin-top:15px">Durée</div>
+      <div class="chips" id="enTime"></div>
+      <button class="gen-btn" onclick="generateEndurance()">Générer une séance d'endurance</button>
+    </div>
+    <div id="enGenOut"></div>
+
+    <div class="sect">Journaliser directement</div>
+    <div class="mini">
       <div class="en-log">
-        <input id="enNote" type="text" placeholder="Durée, distance, ressenti… (ex. 45 min Z2)" maxlength="60">
+        <input id="enNote" type="text" placeholder="Ce que tu as fait (ex. 45 min Z2)" maxlength="60">
         <button onclick="logEndurance()">Ajouter</button>
       </div>
+      <p style="margin:9px 0 0;font-size:12px;color:var(--ink-soft)">Reprend la discipline et l'intensité choisies ci-dessus.</p>
     </div>
 
     <div class="sect">Historique</div>
     <div id="enOut"></div>
-    <p class="note">L'intensité « dur » comptera plus tard dans ton budget hebdo — une seule séance intense par semaine, poumons d'abord.</p>
+    <p class="note">L'intensité « dur » comptera plus tard dans ton budget hebdo.</p>
+  </div>
+
+  <div class="page" id="page-semaine">
+    <p class="intro">Ton cadre de la semaine. L'app compte tes séances faites et te dit quoi générer pour équilibrer.</p>
+    <div class="wk-range" id="weekRange">—</div>
+
+    <div class="sect">Mode</div>
+    <div class="seg" id="weekMode" style="margin-bottom:4px"></div>
+
+    <div class="sect">Objectifs</div>
+    <div id="weekBody"></div>
   </div>
 </div>
 
 <nav class="tabbar">
   <button data-tab="workout" class="on" onclick="showPage('workout')"><span class="ti">▲</span>Workout</button>
+  <button data-tab="semaine" onclick="showPage('semaine')"><span class="ti">▦</span>Semaine</button>
   <button data-tab="endurance" onclick="showPage('endurance')"><span class="ti">≈</span>Endurance</button>
 </nav>
 
@@ -497,13 +538,14 @@ function generateSession(){
   const lbl=(sel.length===MUSCLES.length)?'Full body':(sel.length===1?muscleLabel(sel[0]):'Ciblé · '+sel.length+' muscles');
   const el=document.getElementById('genOut');
   if(!out.length){el.innerHTML='<div class="gen-card"><div class="gen-empty">Sélectionne au moins un muscle et le matériel nécessaire.</div></div>';return;}
+  lastGenSession={label:lbl,n:out.length};
   el.innerHTML='<div class="gen-card"><div class="gen-head">'+lbl+' · '+timeCfg+' min · '+out.length+' mouvements</div>'+out.map(t=>{
     const lv=lvlOf(t.id);const cur=t.levels[lv];const feas=levelFeasible(cur);
     return `<div class="gen-row" onclick="openSheet('${t.id}')"><div class="pt ${PARTCLASS[t.part]}"></div>
       <div class="gi"><div class="part">${t.part} · niv. ${lv+1}</div><div class="nm">${escapeHtml(cur.n)}</div>
       <div class="sc">${feas?escapeHtml(cur.s):'⚠️ nécessite du matériel non sélectionné'}</div></div>
       <div class="go">›</div></div>`;
-  }).join('')+'</div>';
+  }).join('')+'<button class="gen-btn" style="margin-top:14px" onclick="markWorkoutDone(this)">C\'est fait — compter dans la semaine</button></div>';
 }
 
 let curTrack=null;
@@ -549,6 +591,7 @@ renderChips();renderTimeChips();renderFocusChips();renderTracks();applyTheme();r
 function showPage(p){
   document.querySelectorAll('.page').forEach(el=>el.classList.toggle('on',el.id==='page-'+p));
   document.querySelectorAll('.tabbar button').forEach(b=>b.classList.toggle('on',b.dataset.tab===p));
+  if(p==='semaine')renderWeek();
   window.scrollTo(0,0);
 }
 
@@ -585,7 +628,88 @@ function renderEnList(){
   }).join('');
 }
 document.getElementById('enNote').addEventListener('keydown',e=>{if(e.key==='Enter')logEndurance();});
-renderEnForm();renderEnList();
+
+// ---- Durée + générateur de séance d'endurance ----
+const EN_TIMES=[20,30,45,60,75,90];
+let enTime=45;
+function renderEnTime(){document.getElementById('enTime').innerHTML=EN_TIMES.map(t=>`<button class="chip ${enTime===t?'on':''}" onclick="setEnTime(${t})">${t} min</button>`).join('');}
+function setEnTime(t){enTime=t;renderEnTime();}
+function buildEndurance(disc,intn,mins){
+  const name=discLabel(disc);
+  if(intn==='facile'){
+    let b;
+    if(disc==='nage') b=['Échauffement souple 200-300 m','Nage continue facile ~'+Math.max(10,mins-10)+' min, allure conversationnelle','Quelques éducatifs si tu veux (battements, rattrapé)','Retour au calme 100-200 m'];
+    else if(disc==='corde'){const r=Math.max(3,Math.round(mins/4));b=[r+' × 2 min sauts souples / 1 min repos','Rebonds bas, rythme régulier'];}
+    else b=['Mise en route progressive 5-8 min',name+' facile en continu, allure conversationnelle (~'+Math.max(10,mins-8)+' min)','Tu finis en te sentant capable de continuer'];
+    return {title:name+' · facile',sub:mins+' min · Z2 continu',blocks:b};
+  }
+  const warm=12,cool=8,work=Math.max(8,mins-warm-cool);let fmt;
+  if(disc==='nage') fmt=Math.max(4,Math.round(work/2.5))+' × 100 m vif / 30 s repos';
+  else if(disc==='corde') fmt=Math.max(5,Math.round(work/1.5))+' × 45 s rapide / 45 s repos';
+  else if(disc==='velo') fmt=Math.max(4,Math.round(work/6))+' × 3 min fort / 3 min souple';
+  else if(disc==='skirando') fmt=Math.max(3,Math.round(work/8))+' × 4 min soutenu / récup en descente ou pause';
+  else if(disc==='rando') fmt=Math.max(4,Math.round(work/6))+' × 3 min en côte soutenu / redescente récup';
+  else fmt=Math.max(4,Math.round(work/4))+' × 2 min soutenu / 2 min récup';
+  return {title:name+' · dur',sub:mins+' min · intervalles',blocks:['Échauffement progressif '+warm+' min',fmt,'Retour au calme '+cool+' min']};
+}
+let lastEnGen=null;
+function generateEndurance(){
+  const s=buildEndurance(enDisc,enInt,enTime);
+  lastEnGen={disc:enDisc,int:enInt,note:s.sub};
+  document.getElementById('enGenOut').innerHTML='<div class="gen-card"><div class="gen-head">'+escapeHtml(s.title)+' · '+escapeHtml(s.sub)+'</div>'
+    +s.blocks.map((b,i)=>`<div class="en-blk"><span class="bn">${i+1}</span><span>${escapeHtml(b)}</span></div>`).join('')
+    +'<button class="gen-btn" style="margin-top:14px" onclick="logEnduranceFromGen()">C\'est fait — journaliser</button></div>';
+}
+function logEnduranceFromGen(){
+  if(!lastEnGen)return;
+  enList().unshift({iso:new Date().toISOString(),disc:lastEnGen.disc,int:lastEnGen.int,note:lastEnGen.note});
+  save();renderEnList();
+  document.getElementById('enGenOut').innerHTML='<div class="gen-card"><div class="gen-empty">✓ Séance journalisée.</div></div>';
+  lastEnGen=null;
+}
+renderEnForm();renderEnTime();renderEnList();
+
+// ---- Vue Semaine ----
+var lastGenSession=null;
+function isoWeek(d){d=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));var day=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-day);var ys=new Date(Date.UTC(d.getUTCFullYear(),0,1));var wn=Math.ceil(((d-ys)/86400000+1)/7);return d.getUTCFullYear()+'-W'+String(wn).padStart(2,'0');}
+function weekKeyOf(iso){return isoWeek(new Date(iso));}
+function curWeekKey(){return isoWeek(new Date());}
+function weekRangeLabel(){var d=new Date();var day=d.getDay()||7;var mon=new Date(d);mon.setDate(d.getDate()-day+1);var sun=new Date(mon);sun.setDate(mon.getDate()+6);var f=function(x){return x.toLocaleDateString('fr-CH',{day:'numeric',month:'short'});};return f(mon)+' – '+f(sun);}
+function goals(){if(!STORE.goals)STORE.goals={force:2,endu:3};return STORE.goals;}
+function setGoal(k,d){var g=goals();g[k]=Math.max(0,Math.min(7,(g[k]||0)+d));save();renderWeek();}
+function weekMode(){return STORE.weekMode||'normal';}
+function setWeekMode(m){STORE.weekMode=m;save();renderWeek();}
+function weekCounts(){var wk=curWeekKey(),fac=0,dur=0,force=0;(STORE.endurance||[]).forEach(function(e){if(weekKeyOf(e.iso)===wk){if(e.int==='dur')dur++;else fac++;}});(STORE.sessions||[]).forEach(function(s){if(weekKeyOf(s.iso)===wk)force++;});return {force:force,endu:fac+dur,enduDur:dur,enduFac:fac};}
+function logSessionDone(label,n){if(!STORE.sessions)STORE.sessions=[];STORE.sessions.unshift({iso:new Date().toISOString(),label:label||'Séance',n:n||0});save();renderWeek();}
+function markWorkoutDone(btn){if(!lastGenSession)return;logSessionDone('Force · '+lastGenSession.label,lastGenSession.n);lastGenSession=null;if(btn){btn.textContent='✓ Comptée dans la semaine';btn.disabled=true;btn.style.opacity='.6';}}
+function goGenerate(axis){showPage(axis==='force'?'workout':'endurance');}
+function axisBar(c,g,warn){var pct=g>0?Math.min(100,Math.round(c/g*100)):0;return '<div class="bar"><i class="'+(warn?'warn':'')+'" style="width:'+pct+'%"></i></div>';}
+function renderWeek(){
+  var el=document.getElementById('weekBody');if(!el)return;
+  var c=weekCounts(),g=goals(),mode=weekMode();
+  var gForce=mode==='exam'?1:g.force, gEndu=mode==='exam'?2:g.endu, intCap=mode==='exam'?0:1;
+  var rg=document.getElementById('weekRange');if(rg)rg.textContent=weekRangeLabel();
+  var ms=document.getElementById('weekMode');if(ms)ms.innerHTML=
+    '<button class="'+(mode==='normal'?'on':'')+'" onclick="setWeekMode(\'normal\')">Normal</button>'+
+    '<button class="dur '+(mode==='exam'?'on':'')+'" onclick="setWeekMode(\'exam\')">Exam</button>';
+  var fDone=c.force>=gForce, fRem=Math.max(0,gForce-c.force);
+  var force='<div class="wk-card"><div class="wk-top"><div class="wk-name">Force</div><div class="wk-count '+(fDone?'done':'')+'">'+c.force+'/'+gForce+(fDone?' ✓':'')+'</div></div>'+axisBar(c.force,gForce)+
+    '<div class="wk-actions"><div class="wk-step">Objectif <button onclick="setGoal(\'force\',-1)">−</button><b>'+g.force+'</b><button onclick="setGoal(\'force\',1)">+</button></div>'+
+    '<button class="wk-gen" onclick="goGenerate(\'force\')">Générer ›</button></div>'+
+    '<div class="wk-hint '+(fDone?'ok':'')+'">'+(fDone?'✓ Objectif force atteint.':'Il te reste '+fRem+' séance'+(fRem>1?'s':'')+' force cette semaine.')+'</div></div>';
+  var eDone=c.endu>=gEndu, eRem=Math.max(0,gEndu-c.endu);
+  var endu='<div class="wk-card"><div class="wk-top"><div class="wk-name">Endurance</div><div class="wk-count '+(eDone?'done':'')+'">'+c.endu+'/'+gEndu+(eDone?' ✓':'')+'</div></div>'+axisBar(c.endu,gEndu)+
+    '<div class="wk-actions"><div class="wk-step">Objectif <button onclick="setGoal(\'endu\',-1)">−</button><b>'+g.endu+'</b><button onclick="setGoal(\'endu\',1)">+</button></div>'+
+    '<button class="wk-gen" onclick="goGenerate(\'endu\')">Générer ›</button></div>'+
+    '<div class="wk-hint '+(eDone?'ok':'')+'">'+(eDone?'✓ Objectif endurance atteint.':'Il te reste '+eRem+' séance'+(eRem>1?'s':'')+'.')+(c.enduDur?' · dont '+c.enduDur+' dur'+(c.enduDur>1?'s':''):'')+'</div></div>';
+  var locked=intCap===0, over=c.enduDur>intCap;
+  var ipct=intCap>0?Math.min(100,Math.round(c.enduDur/intCap*100)):(c.enduDur>0?100:0);
+  var inten='<div class="wk-card'+(locked?' lock':'')+'"><div class="wk-top"><div class="wk-name">Intensité dure</div><div class="wk-count">'+c.enduDur+'/'+intCap+'</div></div>'+
+    '<div class="bar"><i class="warn" style="width:'+ipct+'%"></i></div>'+
+    '<div class="wk-hint">'+(locked?'Mode exam : pas de séance intense cette semaine.':(over?'⚠️ Tu as dépassé ton budget intense (1/sem).':'Budget hebdo — une séance « dur » suffit.'))+'</div></div>';
+  el.innerHTML=force+endu+inten;
+}
+renderWeek();
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js').catch(function(){});});}</script>
 <script>
