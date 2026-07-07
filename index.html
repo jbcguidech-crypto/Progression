@@ -190,6 +190,9 @@ body{padding-bottom:86px}
 .wk-gen{padding:9px 15px;border-radius:9px;background:var(--accent);color:#fff;font-size:13px;font-weight:600;flex:none}
 .wk-hint{font-size:12px;color:var(--ink-soft);margin-top:11px;line-height:1.4}
 .wk-hint.ok{color:var(--accent);font-weight:600}
+.wk-sug{background:var(--accent-soft);border:1px solid #d4e3da;border-radius:12px;padding:13px;margin-bottom:12px;font-size:13px;color:var(--accent);line-height:1.45}
+.wk-sug button{display:inline-block;margin-top:9px;padding:8px 14px;border-radius:8px;background:var(--accent);color:#fff;font-size:12.5px;font-weight:700}
+.wk-deload{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px;font-size:12.5px;color:var(--ink-soft);line-height:1.5}
 </style>
 </head>
 <body>
@@ -782,7 +785,7 @@ function parseTarget(str){
 }
 function gradeSets(arr,lo,hi){if(!arr.length)return 'stay';var avg=arr.reduce(function(a,b){return a+b;},0)/arr.length;if(avg>=hi)return 'up';if(avg<lo)return 'down';return 'stay';}
 function levelStreak(id,lvl){
-  var arr=perfOf(id).filter(function(p){return p.level===lvl;});
+  var arr=perfOf(id).filter(function(p){return p.level===lvl && !p.deload;});
   if(!arr.length)return {dir:null,n:0};
   var dir=arr[0].grade;if(dir==='stay')return {dir:'stay',n:1};
   var n=0;for(var i=0;i<arr.length;i++){if(arr[i].grade===dir)n++;else break;}
@@ -795,15 +798,16 @@ function validateSets(){
   document.querySelectorAll('#setInputs input').forEach(function(inp){var v=parseInt(inp.value,10);if(!isNaN(v)&&v>=0)sets.push(v);});
   if(!sets.length)return;
   var grade=gradeSets(sets,tg.lo,tg.hi);
-  perfOf(t.id).unshift({iso:new Date().toISOString(),level:lv,sets:sets,grade:grade,unit:tg.unit});
+  var dl=(typeof effectiveWeekMode==='function'&&effectiveWeekMode()==='deload');
+  perfOf(t.id).unshift({iso:new Date().toISOString(),level:lv,sets:sets,grade:grade,unit:tg.unit,deload:dl});
   save();
   lastLevelChange=null;
-  if(!tg.load){
+  if(!tg.load&&!dl){
     var st=levelStreak(t.id,lv);
     if(st.dir==='up'&&st.n>=2&&lv<t.levels.length-1){STORE.level[t.id]=lv+1;lastLevelChange={id:t.id,from:lv,to:lv+1};save();}
     else if(st.dir==='down'&&st.n>=2&&lv>0){STORE.level[t.id]=lv-1;lastLevelChange={id:t.id,from:lv,to:lv-1};save();}
   }
-  pendingVerdict={grade:grade,load:tg.load,lvBefore:lv,maxed:lv>=t.levels.length-1,base:lv<=0};
+  pendingVerdict={grade:grade,load:tg.load,deload:dl,lvBefore:lv,maxed:lv>=t.levels.length-1,base:lv<=0};
   renderSheet();renderTracks();
 }
 function noteFree(){
@@ -821,6 +825,7 @@ function verdictHTML(){
       return '<div class="verdict up">Tu maîtrises ce niveau — passage au niveau suivant.<br><button class="undo" onclick="undoLevel()">Annuler</button></div>';
     return '<div class="verdict down">On redescend d\'un cran pour consolider proprement.<br><button class="undo" onclick="undoLevel()">Annuler</button></div>';
   }
+  if(v.deload)return '<div class="verdict stay">Semaine allégée — séance notée, le niveau ne bouge pas. Garde de la réserve.</div>';
   if(v.load){
     if(v.grade==='up')return '<div class="verdict up">Cible atteinte — la prochaine fois, monte la charge.</div>';
     if(v.grade==='down')return '<div class="verdict down">En dessous de la cible — réduis un peu la charge.</div>';
@@ -890,7 +895,7 @@ function showPage(p){
 }
 
 // ---- Endurance (journal simple) ----
-const DISCIPLINES=[['nage','Nage'],['course','Course'],['rando','Rando rapide'],['velo','Vélo'],['skirando','Ski de rando'],['corde','Corde à sauter']];
+const DISCIPLINES=[['nage','Nage'],['course','Course'],['ht','Home trainer'],['rando','Rando rapide'],['velo','Vélo route'],['skirando','Ski de rando'],['corde','Corde à sauter']];
 let enDisc='course',enInt='facile';
 function discLabel(k){const d=DISCIPLINES.find(x=>x[0]===k);return d?d[1]:k;}
 function enList(){if(!STORE.endurance)STORE.endurance=[];return STORE.endurance;}
@@ -930,6 +935,21 @@ function renderEnTime(){document.getElementById('enTime').innerHTML=EN_TIMES.map
 function setEnTime(t){enTime=t;renderEnTime();}
 function buildEndurance(disc,intn,mins){
   const name=discLabel(disc);
+  if(disc==='ht'){
+    if(intn==='facile'){
+      return {title:'Home trainer · Z2',sub:mins+' min · 65-75 % FTP',blocks:[
+        'Mise en route 8-10 min en montant doucement vers Z2',
+        'Z2 continu ~'+Math.max(15,mins-15)+' min à 65-75 % FTP · cadence ~90 tr/min · ERG activé',
+        'Reste vraiment facile — tu dois pouvoir parler. Un film/podcast aide',
+        'Retour au calme 5 min souple']};}
+    var w,f;
+    if(mins>=75){w=12;f='3 × 15 min à 88-92 % FTP (sweet spot) / 5 min souple entre les blocs · ERG activé';}
+    else if(mins>=60){w=12;f='2 × 20 min à ~90 % FTP (sweet spot) / 5-8 min souple entre les blocs · ERG activé';}
+    else if(mins>=45){w=10;f='3 × 10 min à 90-94 % FTP / 5 min souple · ERG activé';}
+    else {w=12;f='2-3 blocs de 10 × (30 s fort / 15 s souple) · 5 min entre blocs · ERG coupé, réponds naturellement';}
+    return {title:'Home trainer · dur',sub:mins+' min · '+(mins>=45?'sweet spot':'30/15 VO2max'),blocks:[
+      'Échauffement progressif '+w+' min avec 2-3 accélérations courtes',f,'Retour au calme 8 min souple']};
+  }
   if(intn==='facile'){
     let b;
     if(disc==='nage') b=['Échauffement souple 200-300 m','Nage continue facile ~'+Math.max(10,mins-10)+' min, allure conversationnelle','Quelques éducatifs si tu veux (battements, rattrapé)','Retour au calme 100-200 m'];
@@ -972,7 +992,20 @@ function weekRangeLabel(){var d=new Date();var day=d.getDay()||7;var mon=new Dat
 function goals(){if(!STORE.goals)STORE.goals={force:2,endu:3};return STORE.goals;}
 function setGoal(k,d){var g=goals();g[k]=Math.max(0,Math.min(7,(g[k]||0)+d));save();renderWeek();}
 function weekMode(){return STORE.weekMode||'normal';}
-function setWeekMode(m){STORE.weekMode=m;save();renderWeek();}
+function effectiveWeekMode(){if(STORE.deloadWeek===curWeekKey())return 'deload';return STORE.weekMode||'normal';}
+function setWeekMode(m){
+  var cur=curWeekKey();
+  if(m==='deload'){STORE.deloadWeek=cur;if(!STORE.deloads)STORE.deloads=[];if(STORE.deloads.indexOf(cur)<0)STORE.deloads.push(cur);}
+  else {STORE.weekMode=m;if(STORE.deloadWeek===cur)STORE.deloadWeek=null;}
+  save();renderWeek();
+}
+var LOADED_MIN=2,DELOAD_AFTER=5;
+function weekTotalKey(wk){var n=0;(STORE.endurance||[]).forEach(function(e){if(weekKeyOf(e.iso)===wk)n++;});(STORE.sessions||[]).forEach(function(s){if(weekKeyOf(s.iso)===wk)n++;});return n;}
+function loadedStreak(){
+  var n=0,d=new Date();d.setDate(d.getDate()-7);
+  for(var i=0;i<12;i++){var wk=isoWeek(d);if((STORE.deloads||[]).indexOf(wk)>=0)break;if(weekTotalKey(wk)>=LOADED_MIN)n++;else break;d.setDate(d.getDate()-7);}
+  return n;
+}
 function weekCounts(){var wk=curWeekKey(),fac=0,dur=0,force=0;(STORE.endurance||[]).forEach(function(e){if(weekKeyOf(e.iso)===wk){if(e.int==='dur')dur++;else fac++;}});(STORE.sessions||[]).forEach(function(s){if(weekKeyOf(s.iso)===wk)force++;});return {force:force,endu:fac+dur,enduDur:dur,enduFac:fac};}
 function logSessionDone(label,n){if(!STORE.sessions)STORE.sessions=[];STORE.sessions.unshift({iso:new Date().toISOString(),label:label||'Séance',n:n||0});save();renderWeek();}
 function markWorkoutDone(btn){if(!lastGenSession)return;logSessionDone('Force · '+lastGenSession.label,lastGenSession.n);lastGenSession=null;if(btn){btn.textContent='✓ Comptée dans la semaine';btn.disabled=true;btn.style.opacity='.6';}}
@@ -980,12 +1013,21 @@ function goGenerate(axis){showPage(axis==='force'?'workout':'endurance');}
 function axisBar(c,g,warn){var pct=g>0?Math.min(100,Math.round(c/g*100)):0;return '<div class="bar"><i class="'+(warn?'warn':'')+'" style="width:'+pct+'%"></i></div>';}
 function renderWeek(){
   var el=document.getElementById('weekBody');if(!el)return;
-  var c=weekCounts(),g=goals(),mode=weekMode();
-  var gForce=mode==='exam'?1:g.force, gEndu=mode==='exam'?2:g.endu, intCap=mode==='exam'?0:1;
+  var c=weekCounts(),g=goals(),mode=effectiveWeekMode();
+  var deload=mode==='deload',exam=mode==='exam';
+  var gForce=deload?Math.max(1,Math.ceil(g.force/2)):(exam?1:g.force);
+  var gEndu=deload?Math.max(1,Math.ceil(g.endu/2)):(exam?2:g.endu);
+  var intCap=(exam||deload)?0:1;
   var rg=document.getElementById('weekRange');if(rg)rg.textContent=weekRangeLabel();
   var ms=document.getElementById('weekMode');if(ms)ms.innerHTML=
     '<button class="'+(mode==='normal'?'on':'')+'" onclick="setWeekMode(\'normal\')">Normal</button>'+
-    '<button class="dur '+(mode==='exam'?'on':'')+'" onclick="setWeekMode(\'exam\')">Exam</button>';
+    '<button class="'+(deload?'on':'')+'" onclick="setWeekMode(\'deload\')">Allégée</button>'+
+    '<button class="dur '+(exam?'on':'')+'" onclick="setWeekMode(\'exam\')">Exam</button>';
+  var top='';
+  if(mode==='normal'&&loadedStreak()>=DELOAD_AFTER)
+    top+='<div class="wk-sug">Tu enchaînes '+loadedStreak()+' semaines de charge. Une semaine allégée aiderait tes tissus à récupérer et tes progrès à se consolider.<br><button onclick="setWeekMode(\'deload\')">Activer une semaine allégée</button></div>';
+  if(deload)
+    top+='<div class="wk-deload">🌙 Semaine allégée : objectifs réduits, pas de séance dure, garde ~2 reps en réserve. Les niveaux ne bougent pas cette semaine. Reviendra en Normal la semaine prochaine.</div>';
   var fDone=c.force>=gForce, fRem=Math.max(0,gForce-c.force);
   var force='<div class="wk-card"><div class="wk-top"><div class="wk-name">Force</div><div class="wk-count '+(fDone?'done':'')+'">'+c.force+'/'+gForce+(fDone?' ✓':'')+'</div></div>'+axisBar(c.force,gForce)+
     '<div class="wk-actions"><div class="wk-step">Objectif <button onclick="setGoal(\'force\',-1)">−</button><b>'+g.force+'</b><button onclick="setGoal(\'force\',1)">+</button></div>'+
@@ -998,10 +1040,11 @@ function renderWeek(){
     '<div class="wk-hint '+(eDone?'ok':'')+'">'+(eDone?'✓ Objectif endurance atteint.':'Il te reste '+eRem+' séance'+(eRem>1?'s':'')+'.')+(c.enduDur?' · dont '+c.enduDur+' dur'+(c.enduDur>1?'s':''):'')+'</div></div>';
   var locked=intCap===0, over=c.enduDur>intCap;
   var ipct=intCap>0?Math.min(100,Math.round(c.enduDur/intCap*100)):(c.enduDur>0?100:0);
+  var intHint=locked?(deload?'Semaine allégée : on met l\'intensité de côté.':'Mode exam : pas de séance intense cette semaine.'):(over?'⚠️ Tu as dépassé ton budget intense (1/sem).':'Budget hebdo — une séance « dur » suffit.');
   var inten='<div class="wk-card'+(locked?' lock':'')+'"><div class="wk-top"><div class="wk-name">Intensité dure</div><div class="wk-count">'+c.enduDur+'/'+intCap+'</div></div>'+
     '<div class="bar"><i class="warn" style="width:'+ipct+'%"></i></div>'+
-    '<div class="wk-hint">'+(locked?'Mode exam : pas de séance intense cette semaine.':(over?'⚠️ Tu as dépassé ton budget intense (1/sem).':'Budget hebdo — une séance « dur » suffit.'))+'</div></div>';
-  el.innerHTML=force+endu+inten;
+    '<div class="wk-hint">'+intHint+'</div></div>';
+  el.innerHTML=top+force+endu+inten;
 }
 renderWeek();
 </script>
