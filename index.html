@@ -262,6 +262,12 @@ body{padding-bottom:86px}
     </div>
     <div id="enGenOut"></div>
 
+    <div class="mini" style="display:flex;align-items:center;gap:12px">
+      <div style="flex:1"><span class="cap">FTP (watts)</span>
+        <p style="margin:4px 0 0;font-size:12px;color:var(--ink-soft)">Test : 20 min à fond × 0,95. Renseigné, les séances home trainer s'affichent en watts réels.</p></div>
+      <input id="ftpIn" type="number" inputmode="numeric" min="50" max="500" placeholder="—" style="width:76px;text-align:center;font-size:17px;font-weight:700;padding:11px 4px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink)" onchange="setFtp(this.value)">
+    </div>
+
     <div class="sect">Journaliser directement</div>
     <div class="mini">
       <div class="en-log">
@@ -799,7 +805,8 @@ function validateSets(){
   if(!sets.length)return;
   var grade=gradeSets(sets,tg.lo,tg.hi);
   var dl=(typeof effectiveWeekMode==='function'&&effectiveWeekMode()==='deload');
-  perfOf(t.id).unshift({iso:new Date().toISOString(),level:lv,sets:sets,grade:grade,unit:tg.unit,deload:dl});
+  var kgIn=document.getElementById('kgInput');var kg=kgIn?parseFloat(kgIn.value):null;if(isNaN(kg)||kg<=0)kg=null;
+  perfOf(t.id).unshift({iso:new Date().toISOString(),level:lv,sets:sets,grade:grade,unit:tg.unit,deload:dl,kg:kg});
   save();
   lastLevelChange=null;
   if(!tg.load&&!dl){
@@ -827,7 +834,7 @@ function verdictHTML(){
   }
   if(v.deload)return '<div class="verdict stay">Semaine allégée — séance notée, le niveau ne bouge pas. Garde de la réserve.</div>';
   if(v.load){
-    if(v.grade==='up')return '<div class="verdict up">Cible atteinte — la prochaine fois, monte la charge.</div>';
+    if(v.grade==='up')return '<div class="verdict up">Cible atteinte — la prochaine fois, monte la charge de 2 à 4 kg.</div>';
     if(v.grade==='down')return '<div class="verdict down">En dessous de la cible — réduis un peu la charge.</div>';
     return '<div class="verdict stay">Dans la cible — garde cette charge et vise le haut de la fourchette.</div>';
   }
@@ -853,9 +860,14 @@ function renderSheet(){
   if(tg.ok){
     var nF=Math.min(tg.sets||4,6),fields='';
     for(var i=0;i<nF;i++)fields+='<div class="set-in"><span class="si">S'+(i+1)+'</span><input type="number" inputmode="numeric" min="0" placeholder="'+(tg.hi||'')+'"></div>';
+    var kgBlock='';
+    if(tg.load){
+      var lastKg=null,pk=perfOf(t.id).find(function(p){return p.level===lv&&p.kg;});if(pk)lastKg=pk.kg;
+      kgBlock='<div class="sets-lbl">Charge utilisée (kg)</div><div class="sets-row"><div class="set-in" style="max-width:110px"><span class="si">kg</span><input id="kgInput" type="number" inputmode="decimal" min="0" step="0.5"'+(lastKg?' value="'+lastKg+'"':' placeholder="kg"')+'></div></div>';
+    }
     entry='<div class="sets-lbl">Tes séries réalisées ('+unitTxt+')</div>'
       +'<div class="sets-row" id="setInputs">'+fields+'</div>'
-      +(tg.load?'<div class="pa" style="margin-top:8px">La progression se fait en charge, pas en variante.</div>':'')
+      +kgBlock
       +'<button class="val-btn" onclick="validateSets()">Valider la séance</button>';
   } else {
     entry='<div class="sets-lbl">Note ta séance</div><div class="log-row"><input id="freeNote" type="text" placeholder="reps, temps, ressenti…" maxlength="40"><button onclick="noteFree()">Valider</button></div>';
@@ -878,6 +890,7 @@ function renderSheet(){
     var d=new Date(e.iso).toLocaleDateString('fr-CH',{day:'numeric',month:'short'});
     var u=e.unit==='sec'?' s':(e.unit==='dist'?' m':'');
     var val=e.note?escapeHtml(e.note):(e.sets?e.sets.join('/')+u:'');
+    if(e.kg)val+=' · '+e.kg+' kg';
     var arrow=e.grade==='up'?' ↑':(e.grade==='down'?' ↓':'');
     return '<div class="he"><span>'+d+' · niv. '+(e.level+1)+'</span><span>'+val+arrow+'</span></div>';
   }).join(''):'<div class="gen-empty">Aucune séance notée pour l\'instant.</div>';
@@ -933,19 +946,21 @@ const EN_TIMES=[20,30,45,60,75,90];
 let enTime=45;
 function renderEnTime(){document.getElementById('enTime').innerHTML=EN_TIMES.map(t=>`<button class="chip ${enTime===t?'on':''}" onclick="setEnTime(${t})">${t} min</button>`).join('');}
 function setEnTime(t){enTime=t;renderEnTime();}
+function setFtp(v){var n=parseInt(v,10);STORE.ftp=(n>0?n:null);save();}
+function pw(lo,hi){if(!STORE.ftp)return '';var a=Math.round(STORE.ftp*lo/100),b=Math.round(STORE.ftp*hi/100);return ' ('+(lo===hi?a:a+'-'+b)+' W)';}
 function buildEndurance(disc,intn,mins){
   const name=discLabel(disc);
   if(disc==='ht'){
     if(intn==='facile'){
-      return {title:'Home trainer · Z2',sub:mins+' min · 65-75 % FTP',blocks:[
+      return {title:'Home trainer · Z2',sub:mins+' min · 65-75 % FTP'+pw(65,75),blocks:[
         'Mise en route 8-10 min en montant doucement vers Z2',
-        'Z2 continu ~'+Math.max(15,mins-15)+' min à 65-75 % FTP · cadence ~90 tr/min · ERG activé',
+        'Z2 continu ~'+Math.max(15,mins-15)+' min à 65-75 % FTP'+pw(65,75)+' · cadence ~90 tr/min · ERG activé',
         'Reste vraiment facile — tu dois pouvoir parler. Un film/podcast aide',
         'Retour au calme 5 min souple']};}
     var w,f;
-    if(mins>=75){w=12;f='3 × 15 min à 88-92 % FTP (sweet spot) / 5 min souple entre les blocs · ERG activé';}
-    else if(mins>=60){w=12;f='2 × 20 min à ~90 % FTP (sweet spot) / 5-8 min souple entre les blocs · ERG activé';}
-    else if(mins>=45){w=10;f='3 × 10 min à 90-94 % FTP / 5 min souple · ERG activé';}
+    if(mins>=75){w=12;f='3 × 15 min à 88-92 % FTP'+pw(88,92)+' (sweet spot) / 5 min souple entre les blocs · ERG activé';}
+    else if(mins>=60){w=12;f='2 × 20 min à ~90 % FTP'+pw(90,90)+' (sweet spot) / 5-8 min souple entre les blocs · ERG activé';}
+    else if(mins>=45){w=10;f='3 × 10 min à 90-94 % FTP'+pw(90,94)+' / 5 min souple · ERG activé';}
     else {w=12;f='2-3 blocs de 10 × (30 s fort / 15 s souple) · 5 min entre blocs · ERG coupé, réponds naturellement';}
     return {title:'Home trainer · dur',sub:mins+' min · '+(mins>=45?'sweet spot':'30/15 VO2max'),blocks:[
       'Échauffement progressif '+w+' min avec 2-3 accélérations courtes',f,'Retour au calme 8 min souple']};
@@ -982,6 +997,7 @@ function logEnduranceFromGen(){
   lastEnGen=null;
 }
 renderEnForm();renderEnTime();renderEnList();
+(function(){var fi=document.getElementById('ftpIn');if(fi&&STORE.ftp)fi.value=STORE.ftp;})();
 
 // ---- Vue Semaine ----
 var lastGenSession=null;
