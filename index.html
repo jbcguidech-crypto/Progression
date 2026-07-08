@@ -217,7 +217,7 @@ body{padding-bottom:86px}
     </div>
     <div class="chips" id="progFocus"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:15px">
-      <span class="cap" style="margin:0">Matériel <span style="text-transform:none;letter-spacing:0;font-weight:400">(poids du corps inclus)</span></span>
+      <span class="cap" style="margin:0">Matériel</span>
       <button class="allbtn" id="equipAllBtn" onclick="toggleAllEquip()">Tout décocher</button>
     </div>
     <div class="chips" id="equipChips"></div>
@@ -323,7 +323,7 @@ body{padding-bottom:86px}
 </div>
 
 <script>
-const EQUIPS=[['barre','Barre'],['trx','TRX'],['anneaux','Anneaux'],['box','Box'],['kb','Kettlebell'],['gilet','Gilet lesté'],['mb','Med ball'],['slider','Plaquettes']];
+const EQUIPS=[['pdc','Poids du corps'],['barre','Barre'],['trx','TRX'],['anneaux','Anneaux'],['box','Box'],['kb','Kettlebell'],['gilet','Gilet lesté'],['mb','Med ball'],['slider','Plaquettes']];
 const PARTCLASS={Tirage:'p-tirage',Poussée:'p-poussee',Jambes:'p-jambes',Tronc:'p-tronc',Charge:'p-charge',Skill:'p-skill',Ischios:'p-ischio',Explosivité:'p-explo',Mollets:'p-jambes',Biceps:'p-tirage','Avant-bras':'p-charge','Épaules':'p-poussee',Fessiers:'p-jambes'};
 
 const TRACKS=[
@@ -655,7 +655,7 @@ const TRACKS=[
  ]},
 ];
 
-let equip=new Set(['barre','trx','anneaux','box','kb','gilet','mb','slider']);
+let equip=new Set(['pdc','barre','trx','anneaux','box','kb','gilet','mb','slider']);
 const TIMES=[10,15,20,30,45,60,75,90,120];let timeCfg=20;
 const MUSCLES=[
   ['quads','Quadriceps',['pistol','lunges','pliometrie','kb_force','shrimp','wallsit','stepup','front_squat']],
@@ -739,8 +739,8 @@ function importData(input){
   r.readAsText(f);
 }
 
-function trackAvailable(t){return !t.need||t.need.some(e=>equip.has(e));}
-function levelFeasible(lv){return !lv.need||lv.need.some(e=>equip.has(e));}
+function trackAvailable(t){return t.need?t.need.some(e=>equip.has(e)):equip.has('pdc');}
+function levelFeasible(lv,t){if(lv.need)return lv.need.some(e=>equip.has(e));if(t&&t.need)return t.need.some(e=>equip.has(e));return equip.has('pdc');}
 
 function renderChips(){
   document.getElementById('equipChips').innerHTML=EQUIPS.map(([c,l])=>`<button class="chip ${equip.has(c)?'on':''}" onclick="toggleEquip('${c}')">${l}</button>`).join('');
@@ -796,7 +796,7 @@ function generateSession(){
   if(!out.length){el.innerHTML='<div class="gen-card"><div class="gen-empty">Sélectionne au moins un muscle et le matériel nécessaire.</div></div>';return;}
   lastGenSession={label:lbl,n:out.length};
   el.innerHTML='<div class="gen-card"><div class="gen-head">'+lbl+' · '+timeLabel(timeCfg)+' · '+out.length+' mouvements</div>'+out.map(t=>{
-    const lv=lvlOf(t.id);const cur=t.levels[lv];const feas=levelFeasible(cur);
+    const lv=lvlOf(t.id);const cur=t.levels[lv];const feas=levelFeasible(cur,t);
     return `<div class="gen-row" onclick="openSheet('${t.id}')"><div class="pt ${PARTCLASS[t.part]}"></div>
       <div class="gi"><div class="part">${t.part} · niv. ${lv+1}</div><div class="nm">${escapeHtml(cur.n)}</div>
       <div class="sc">${feas?escapeHtml(cur.s):'⚠️ nécessite du matériel non sélectionné'}</div></div>
@@ -888,7 +888,7 @@ function verdictHTML(){
   return '<div class="verdict stay">Dans la cible — niveau maintenu. C\'est ta zone de travail.</div>';
 }
 function renderSheet(){
-  const t=TRACKS.find(x=>x.id===curTrack);const lv=lvlOf(t.id);const cur=t.levels[lv];const feas=levelFeasible(cur);
+  const t=TRACKS.find(x=>x.id===curTrack);const lv=lvlOf(t.id);const cur=t.levels[lv];const feas=levelFeasible(cur,t);
   document.getElementById('sPart').textContent=t.part;
   document.getElementById('sTitle').textContent=t.name;
   document.getElementById('sProgress').textContent='Niveau '+(lv+1)+' sur '+t.levels.length;
