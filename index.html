@@ -690,8 +690,8 @@ function renderFocusChips(){
   const ab=document.getElementById('muscleAllBtn');if(ab)ab.textContent=focusParts.size>0?'Tout décocher':'Tout cocher';
   renderShortcuts();
 }
-const PRESETS={push:['pecs','epaules'],pull:['dos','biceps','avantbras'],legs:['quads','ischios','fessiers','mollets'],full:MUSCLES.map(m=>m[0])};
-const PRESET_LABEL={push:'Push',pull:'Pull',legs:'Legs',full:'Full'};
+const PRESETS={push:['pecs','epaules'],pull:['dos','biceps','avantbras'],legs:['quads','ischios','fessiers','mollets'],core:['abdos'],full:MUSCLES.map(m=>m[0])};
+const PRESET_LABEL={push:'Push',pull:'Pull',legs:'Legs',core:'Abdos & Gainage',full:'Full'};
 function eqSet(arr){return arr.length===focusParts.size&&arr.every(x=>focusParts.has(x));}
 function matchPreset(){return Object.keys(PRESETS).find(p=>eqSet(PRESETS[p]))||null;}
 function renderShortcuts(){const cur=matchPreset();const el=document.getElementById('pplShortcuts');if(el)el.innerHTML=Object.keys(PRESET_LABEL).map(p=>`<button class="chip ${cur===p?'on':''}" onclick="setPreset('${p}')">${PRESET_LABEL[p]}</button>`).join('');}
