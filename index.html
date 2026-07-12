@@ -318,7 +318,7 @@ body{padding-bottom:86px}
 </div>
 
 <script>
-const APP_VERSION='v1.7.0';
+const APP_VERSION='v1.8.0';
 document.getElementById('appVer').textContent=APP_VERSION;
 const EQUIPS=[['pdc','Poids du corps'],['barre','Barre'],['trx','TRX'],['anneaux','Anneaux'],['box','Box'],['kb','Kettlebell'],['gilet','Gilet lesté'],['mb','Med ball'],['slider','Plaquettes']];
 const PARTCLASS={Tirage:'p-tirage',Poussée:'p-poussee',Jambes:'p-jambes',Tronc:'p-tronc',Charge:'p-charge',Skill:'p-skill',Ischios:'p-ischio',Explosivité:'p-explo',Mollets:'p-jambes',Biceps:'p-tirage','Avant-bras':'p-charge','Épaules':'p-poussee',Fessiers:'p-jambes'};
@@ -1157,14 +1157,51 @@ const BENCH=[
 function renderBench(){
   document.getElementById('benchList').innerHTML=BENCH.map(function(b){
     var av=!b.need||b.need.some(function(e){return equip.has(e);});
+    var pr=benchPR(b.id);
     return '<div class="gen-card" style="padding:0 16px"><div class="gen-row" onclick="showBench(\''+b.id+'\')"><div class="pt p-explo"></div>'
-      +'<div class="gi"><div class="part">'+(av?(b.hero?'Hero WOD':'Benchmark'):'Matériel manquant')+'</div><div class="nm">'+b.name+'</div><div class="sc">'+b.sub+'</div></div><div class="go">›</div></div></div>';
+      +'<div class="gi"><div class="part">'+(av?(b.hero?'Hero WOD':'Benchmark'):'Matériel manquant')+'</div><div class="nm">'+b.name+'</div><div class="sc">'+b.sub+(pr?' · <b>🏆 '+escapeHtml(pr.score)+'</b>':'')+'</div></div><div class="go">›</div></div></div>';
   }).join('');
+}
+const BENCH_SCORE=new Set(['cindy','chelsea','mary','nicole','lynne','tabata','fgb','chief','deathby','nate','mcghee']);
+var curBenchId=null;
+function benchHist(id){if(!STORE.bench)STORE.bench={};if(!STORE.bench[id])STORE.bench[id]=[];return STORE.bench[id];}
+function parseScoreVal(s,isScore){
+  s=(s||'').trim();if(!s)return null;
+  var m=s.match(/^(\d+)\s*[:hm']\s*(\d{1,2})/);
+  if(m)return (+m[1])*60+(+m[2]);
+  var n=parseFloat(s.replace(',','.'));
+  if(isNaN(n))return null;
+  return isScore?n:n*60;
+}
+function benchPR(id){
+  var isScore=BENCH_SCORE.has(id);var h=benchHist(id).filter(function(e){return e.val!=null;});
+  if(!h.length)return null;
+  return h.reduce(function(a,b){return isScore?(b.val>a.val?b:a):(b.val<a.val?b:a);});
 }
 function showBench(id){
   var b=BENCH.find(function(x){return x.id===id;});if(!b)return;
-  document.getElementById('wodOut').innerHTML=buildWodCard(b.name+' · '+b.sub,b.blocks,b.name);
+  curBenchId=id;
+  var pr=benchPR(id),h=benchHist(id),last=h[0]||null;
+  var isScore=BENCH_SCORE.has(id);
+  var prLine=pr?'<div class="pa" style="margin-top:10px">🏆 PR : <b>'+escapeHtml(pr.score)+'</b>'+(last&&last.iso!==pr.iso?' · dernier : '+escapeHtml(last.score):'')+'</div>':'';
+  document.getElementById('wodOut').innerHTML='<div class="gen-card"><div class="gen-head">'+escapeHtml(b.name+' · '+b.sub)+'</div>'
+    +b.blocks.map(function(x,i){return '<div class="en-blk"><span class="bn">'+(i+1)+'</span><span>'+escapeHtml(x)+'</span></div>';}).join('')
+    +prLine
+    +'<div class="en-log" style="margin-top:12px"><input id="benchScore" type="text" placeholder="'+(isScore?'Ton score (tours / reps)':'Ton temps (mm:ss)')+'" maxlength="12"><button onclick="logBenchDone()">C\'est fait</button></div>'
+    +'</div>';
   document.getElementById('wodOut').scrollIntoView({behavior:'smooth'});
+}
+function logBenchDone(){
+  var b=BENCH.find(function(x){return x.id===curBenchId;});if(!b)return;
+  var isScore=BENCH_SCORE.has(b.id);
+  var inp=document.getElementById('benchScore');var raw=inp?inp.value.trim():'';
+  var val=parseScoreVal(raw,isScore);
+  var prevPR=benchPR(b.id);
+  if(raw)benchHist(b.id).unshift({iso:new Date().toISOString(),score:raw,val:val});
+  enList().unshift({iso:new Date().toISOString(),disc:'wod',int:wodInt,note:b.name+(raw?' · '+raw:'')});
+  save();renderEnList();renderBench();
+  var newPR=raw&&val!=null&&(!prevPR||(isScore?val>prevPR.val:val<prevPR.val));
+  document.getElementById('wodOut').innerHTML='<div class="gen-card"><div class="gen-empty">'+(newPR?'🏆 Nouveau record personnel : '+escapeHtml(raw)+' !':'✓ WOD journalisé'+(raw?' · '+escapeHtml(raw):'')+'.')+'</div></div>';
 }
 // ---- Roulette WOD ----
 var spinning=false;
