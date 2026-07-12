@@ -99,6 +99,8 @@ header{padding:22px 0 6px;display:flex;justify-content:space-between;align-items
 .s-progress{font-size:12px;color:var(--ink-soft);text-align:center;margin-top:4px}
 .s-desc{font-size:12.5px;color:var(--ink-soft);line-height:1.55;margin:12px 2px 0;padding:11px 13px;background:var(--card2);border:1px solid var(--line);border-radius:11px}
 .s-desc b{color:var(--ink)}
+.plateau{font-size:12.5px;line-height:1.5;margin:10px 2px 0;padding:11px 13px;background:rgba(184,146,58,.1);border:1px solid rgba(184,146,58,.35);border-radius:11px;color:var(--ink)}
+.plateau button{display:inline-block;margin-top:8px;padding:7px 13px;border-radius:8px;font-size:12.5px;font-weight:700;background:var(--explo);color:#fff}
 .presc{background:var(--accent-soft);border:1px solid #d4e3da;border-radius:12px;padding:14px;margin:14px 0}
 .presc .pl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:700}
 .presc .pn{font-size:17px;font-weight:700;margin-top:4px}
@@ -306,6 +308,7 @@ body{padding-bottom:86px}
     <div class="s-title" id="sTitle">—</div>
     <div class="s-progress" id="sProgress">—</div>
     <p class="s-desc" id="sDesc"></p>
+    <div id="sPlateau"></div>
     <div id="sPresc"></div>
     <div class="lvl-btns">
       <button class="lvl-dn" onclick="changeLevel(-1)">◂ Niveau précédent</button>
@@ -319,7 +322,7 @@ body{padding-bottom:86px}
 </div>
 
 <script>
-const APP_VERSION='v1.9.0';
+const APP_VERSION='v1.10.0';
 document.getElementById('appVer').textContent=APP_VERSION;
 const EQUIPS=[['pdc','Poids du corps'],['barre','Barre'],['trx','TRX'],['anneaux','Anneaux'],['box','Box'],['kb','Kettlebell'],['gilet','Gilet lesté'],['mb','Med ball'],['slider','Plaquettes']];
 const PARTCLASS={Tirage:'p-tirage',Poussée:'p-poussee',Jambes:'p-jambes',Tronc:'p-tronc',Charge:'p-charge',Skill:'p-skill',Ischios:'p-ischio',Explosivité:'p-explo',Mollets:'p-jambes',Biceps:'p-tirage','Avant-bras':'p-charge','Épaules':'p-poussee',Fessiers:'p-jambes'};
@@ -975,12 +978,34 @@ function wireSetInputs(){
     });
   });
 }
+function plateauOf(t,lv){
+  var tg=parseTarget(t.levels[lv].s);
+  if(tg.load||lv>=t.levels.length-1)return null;
+  var n=0,arr=perfOf(t.id);
+  for(var i=0;i<arr.length;i++){if(arr[i].level===lv&&!arr[i].deload)n++;else if(arr[i].level!==lv)break;}
+  return n>=5?{n:n}:null;
+}
+function plateauSibling(t){
+  var owners=MUSCLES.filter(function(m){return m[2].indexOf(t.id)>=0;});
+  var pool=[];owners.forEach(function(m){m[2].forEach(function(x){if(x!==t.id&&pool.indexOf(x)<0)pool.push(x);});});
+  var cand=pool.map(function(x){return TRACKS.find(function(k){return k.id===x;});}).filter(function(k){return k&&trackAvailable(k);});
+  return cand.length?cand[Math.floor(Math.random()*cand.length)]:null;
+}
 function renderSheet(){
   const t=TRACKS.find(x=>x.id===curTrack);const lv=lvlOf(t.id);const cur=t.levels[lv];const feas=levelFeasible(cur,t);
   document.getElementById('sPart').textContent=t.part;
   document.getElementById('sTitle').textContent=t.name;
   document.getElementById('sProgress').textContent='Niveau '+(lv+1)+' sur '+t.levels.length;
   var sd=document.getElementById('sDesc');if(sd){sd.textContent=TRACK_INFO[t.id]||'';sd.style.display=TRACK_INFO[t.id]?'':'none';}
+  var sp=document.getElementById('sPlateau');
+  if(sp){
+    var pl=plateauOf(t,lv);
+    if(pl){
+      var sib=plateauSibling(t);
+      sp.innerHTML='<div class="plateau">🔁 <b>'+pl.n+' séances à ce niveau</b> sans montée. C\'est le signal classique pour varier le stimulus : change de variante quelques semaines, puis reviens.'
+        +(sib?'<br><button onclick="openSheet(\''+sib.id+'\')">Essayer : '+escapeHtml(sib.name)+' ›</button>':'')+'</div>';
+    } else sp.innerHTML='';
+  }
   var tg=parseTarget(cur.s);
   var unitTxt=tg.unit==='sec'?'secondes':(tg.unit==='dist'?'mètres':'reps');
   if(tg.perSide)unitTxt+=' / côté';
