@@ -40,6 +40,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 .cap{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
 header{padding:22px 0 6px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .ver{font-size:10px;font-weight:600;letter-spacing:.05em;color:var(--ink-soft);background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 9px;white-space:nowrap;margin-top:4px}
+.hbtn{font-size:15px;line-height:1;padding:5px 9px;border-radius:999px;background:var(--card);border:1px solid var(--line);color:var(--ink-soft);margin-top:2px}
 .logo{font-size:23px;font-weight:700;letter-spacing:-.02em}
 .logo small{display:block;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-top:3px}
 .intro{font-size:13px;color:var(--ink-soft);margin:8px 2px 0}
@@ -211,7 +212,10 @@ body{padding-bottom:86px}
 <div class="wrap">
   <header>
     <div class="logo">Progression<small>monter en niveau, mouvement par mouvement</small></div>
-    <span class="ver" id="appVer">—</span>
+    <div style="display:flex;align-items:flex-start;gap:7px;flex:none">
+      <span class="ver" id="appVer">—</span>
+      <button class="hbtn" onclick="openSettings()" aria-label="Réglages">⚙</button>
+    </div>
   </header>
 
   <div class="page" id="page-workout">
@@ -246,22 +250,6 @@ body{padding-bottom:86px}
   <div id="trackList"></div>
   <p class="note">Touche une catégorie pour la déplier, puis un mouvement pour voir l'échelle, journaliser tes séries et progresser.</p>
 
-  <div class="sect">Thème</div>
-  <div class="mini">
-    <div class="theme-opts" id="themeOpts">
-      <button data-theme-opt="auto" onclick="setTheme('auto')">Auto</button>
-      <button data-theme-opt="light" onclick="setTheme('light')">Clair</button>
-      <button data-theme-opt="dark" onclick="setTheme('dark')">Sombre</button>
-    </div>
-    <p style="margin:9px 0 0;font-size:12px;color:var(--ink-soft)">Auto : clair le jour, sombre le soir (et selon ton système).</p>
-  </div>
-
-  <div class="sect">Données</div>
-  <div class="mini"><p style="margin:0 0 11px;font-size:13px">Tes niveaux et perfs sont gardés sur cet appareil. Exporte une sauvegarde de temps en temps.</p>
-    <button class="allbtn" style="display:block;width:100%;margin-bottom:9px;padding:11px;border-radius:10px" onclick="exportData()">⬇ Exporter mes données</button>
-    <button class="allbtn" style="display:block;width:100%;padding:11px;border-radius:10px" onclick="document.getElementById('importFile').click()">⬆ Importer une sauvegarde</button>
-    <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importData(this)">
-  </div>
   </div>
 
   <div class="page on" id="page-semaine">
@@ -315,6 +303,30 @@ body{padding-bottom:86px}
   <button data-tab="endurance" onclick="showPage('endurance')"><span class="ti">◆</span>WOD</button>
 </nav>
 
+<div class="overlay" id="setOverlay" onclick="if(event.target===this)closeSettings()">
+  <div class="sheet">
+    <div class="grip"></div>
+    <div class="s-title" style="margin-bottom:4px">Réglages</div>
+
+    <div class="sect" style="margin:16px 2px 8px">Thème</div>
+    <div class="mini">
+      <div class="theme-opts" id="themeOpts">
+        <button data-theme-opt="auto" onclick="setTheme('auto')">Auto</button>
+        <button data-theme-opt="light" onclick="setTheme('light')">Clair</button>
+        <button data-theme-opt="dark" onclick="setTheme('dark')">Sombre</button>
+      </div>
+      <p style="margin:9px 0 0;font-size:12px;color:var(--ink-soft)">Auto : clair le jour, sombre le soir (et selon ton système).</p>
+    </div>
+
+    <div class="sect" style="margin:16px 2px 8px">Données</div>
+    <div class="mini"><p style="margin:0 0 11px;font-size:13px">Tes niveaux et perfs sont gardés sur cet appareil. Exporte une sauvegarde de temps en temps.</p>
+      <button class="allbtn" style="display:block;width:100%;margin-bottom:9px;padding:11px;border-radius:10px" onclick="exportData()">⬇ Exporter mes données</button>
+      <button class="allbtn" style="display:block;width:100%;padding:11px;border-radius:10px" onclick="document.getElementById('importFile').click()">⬆ Importer une sauvegarde</button>
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importData(this)">
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="overlay" onclick="if(event.target===this)closeSheet()">
   <div class="sheet" id="sheet">
     <div class="grip"></div>
@@ -337,7 +349,7 @@ body{padding-bottom:86px}
 </div>
 
 <script>
-const APP_VERSION='v1.13.0';
+const APP_VERSION='v1.14.0';
 document.getElementById('appVer').textContent=APP_VERSION;
 const EQUIPS=[['pdc','Poids du corps'],['barre','Barre'],['trx','TRX'],['anneaux','Anneaux'],['box','Box'],['kb','Kettlebell'],['gilet','Gilet lesté'],['mb','Med ball'],['slider','Plaquettes']];
 const PARTCLASS={Tirage:'p-tirage',Poussée:'p-poussee',Jambes:'p-jambes',Tronc:'p-tronc',Charge:'p-charge',Skill:'p-skill',Ischios:'p-ischio',Explosivité:'p-explo',Mollets:'p-jambes',Biceps:'p-tirage','Avant-bras':'p-charge','Épaules':'p-poussee',Fessiers:'p-jambes'};
@@ -781,6 +793,8 @@ function applyTheme(){
 }
 function renderThemeUI(){document.querySelectorAll('[data-theme-opt]').forEach(b=>b.classList.toggle('on',b.dataset.themeOpt===(STORE.theme||'auto')));}
 function setTheme(t){STORE.theme=t;save();applyTheme();renderThemeUI();}
+function openSettings(){document.getElementById('setOverlay').classList.add('open');}
+function closeSettings(){document.getElementById('setOverlay').classList.remove('open');}
 function lvlOf(id){return STORE.level[id]||0;}
 function histOf(id){if(!STORE.hist[id])STORE.hist[id]=[];return STORE.hist[id];}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
