@@ -300,7 +300,7 @@ body{padding-bottom:86px}
         <input id="wodNote" type="text" placeholder="Ce que tu as fait (ex. Cindy — 17 tours)" maxlength="60">
         <button onclick="logWodDirect()">Ajouter</button>
       </div>
-      <p style="margin:9px 0 0;font-size:12px;color:var(--ink-soft)">Reprend l'allure choisie ci-dessus. Compte dans ta semaine.</p>
+      <p id="wodDirectMsg" style="margin:9px 0 0;font-size:12px;color:var(--ink-soft)">Reprend l'allure choisie ci-dessus. Compte dans ta semaine.</p>
     </div>
 
     <div class="sect">Historique</div>
@@ -337,7 +337,7 @@ body{padding-bottom:86px}
 </div>
 
 <script>
-const APP_VERSION='v1.12.0';
+const APP_VERSION='v1.13.0';
 document.getElementById('appVer').textContent=APP_VERSION;
 const EQUIPS=[['pdc','Poids du corps'],['barre','Barre'],['trx','TRX'],['anneaux','Anneaux'],['box','Box'],['kb','Kettlebell'],['gilet','Gilet lesté'],['mb','Med ball'],['slider','Plaquettes']];
 const PARTCLASS={Tirage:'p-tirage',Poussée:'p-poussee',Jambes:'p-jambes',Tronc:'p-tronc',Charge:'p-charge',Skill:'p-skill',Ischios:'p-ischio',Explosivité:'p-explo',Mollets:'p-jambes',Biceps:'p-tirage','Avant-bras':'p-charge','Épaules':'p-poussee',Fessiers:'p-jambes'};
@@ -1282,7 +1282,7 @@ function logBenchDone(){
   enList().unshift({iso:new Date().toISOString(),disc:'wod',int:wodInt,note:b.name+(raw?' · '+raw:'')});
   save();renderEnList();renderBench();
   var newPR=raw&&val!=null&&(!prevPR||(isScore?val>prevPR.val:val<prevPR.val));
-  document.getElementById('wodOut').innerHTML='<div class="gen-card"><div class="gen-empty">'+(newPR?'🏆 Nouveau record personnel : '+escapeHtml(raw)+' !':'✓ WOD journalisé'+(raw?' · '+escapeHtml(raw):'')+'.')+'</div></div>';
+  document.getElementById('wodOut').innerHTML='<div class="gen-card"><div class="gen-empty">'+(newPR?'🏆 Nouveau record personnel : '+escapeHtml(raw)+' !':'✓ WOD journalisé'+(raw?' · '+escapeHtml(raw):'')+'.')+'<br>'+weekAxisMsg('endu')+'.</div></div>';
 }
 // ---- Roulette WOD ----
 var spinning=false;
@@ -1316,13 +1316,15 @@ function logWodFromGen(){
   if(!lastWodGen)return;
   enList().unshift({iso:new Date().toISOString(),disc:'wod',int:lastWodGen.int,note:lastWodGen.note});
   save();renderEnList();
-  document.getElementById('wodOut').innerHTML='<div class="gen-card"><div class="gen-empty">✓ WOD journalisé.</div></div>';
+  document.getElementById('wodOut').innerHTML='<div class="gen-card"><div class="gen-empty">✓ WOD journalisé · '+weekAxisMsg('endu')+'.</div></div>';
   lastWodGen=null;
 }
 function logWodDirect(){
   var inp=document.getElementById('wodNote');var v=inp.value.trim();
   enList().unshift({iso:new Date().toISOString(),disc:'wod',int:wodInt,note:v});
   save();inp.value='';renderEnList();
+  var msg=document.getElementById('wodDirectMsg');
+  if(msg){msg.textContent='✓ Journalisé · '+weekAxisMsg('endu')+'.';msg.style.color='var(--accent)';msg.style.fontWeight='600';}
 }
 function delEndurance(iso){STORE.endurance=enList().filter(function(e){return e.iso!==iso;});save();renderEnList();}
 function renderEnList(){
@@ -1365,8 +1367,15 @@ function loadedStreak(){
   return n;
 }
 function weekCounts(){var wk=curWeekKey(),fac=0,dur=0,force=0;(STORE.endurance||[]).forEach(function(e){if(weekKeyOf(e.iso)===wk){if(e.int==='dur')dur++;else fac++;}});(STORE.sessions||[]).forEach(function(s){if(weekKeyOf(s.iso)===wk)force++;});return {force:force,endu:fac+dur,enduDur:dur,enduFac:fac};}
+function weekAxisMsg(axis){
+  var c=weekCounts(),g=goals(),mode=effectiveWeekMode();
+  var gF=mode==='deload'?Math.max(1,Math.ceil(g.force/2)):(mode==='exam'?1:g.force);
+  var gE=mode==='deload'?Math.max(1,Math.ceil(g.endu/2)):(mode==='exam'?2:g.endu);
+  if(axis==='force')return 'Force '+c.force+'/'+gF+' cette semaine'+(c.force>=gF?' ✓':'');
+  return 'WOD '+c.endu+'/'+gE+' cette semaine'+(c.endu>=gE?' ✓':'');
+}
 function logSessionDone(label,n){if(!STORE.sessions)STORE.sessions=[];STORE.sessions.unshift({iso:new Date().toISOString(),label:label||'Séance',n:n||0});save();renderWeek();}
-function markWorkoutDone(btn){if(!lastGenSession)return;logSessionDone('Force · '+lastGenSession.label,lastGenSession.n);lastGenSession=null;if(btn){btn.textContent='✓ Comptée dans la semaine';btn.disabled=true;btn.style.opacity='.6';}}
+function markWorkoutDone(btn){if(!lastGenSession)return;logSessionDone('Force · '+lastGenSession.label,lastGenSession.n);lastGenSession=null;if(btn){btn.textContent='✓ '+weekAxisMsg('force');btn.disabled=true;btn.style.opacity='.6';}}
 function goGenerate(axis){showPage(axis==='force'?'workout':'endurance');}
 function axisBar(c,g,warn){var pct=g>0?Math.min(100,Math.round(c/g*100)):0;return '<div class="bar"><i class="'+(warn?'warn':'')+'" style="width:'+pct+'%"></i></div>';}
 function renderWeek(){
