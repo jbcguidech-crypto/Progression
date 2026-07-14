@@ -300,7 +300,7 @@ body{padding-bottom:86px}
 <nav class="tabbar">
   <button data-tab="workout" onclick="showPage('workout')"><span class="ti">▲</span>Workout</button>
   <button data-tab="semaine" class="on" onclick="showPage('semaine')"><span class="ti">▦</span>Semaine</button>
-  <button data-tab="endurance" onclick="showPage('endurance')"><span class="ti">◆</span>WOD</button>
+  <button data-tab="endurance" onclick="showPage('endurance')"><span class="ti">◆</span>CrossFit</button>
 </nav>
 
 <div class="overlay" id="setOverlay" onclick="if(event.target===this)closeSettings()">
@@ -349,7 +349,7 @@ body{padding-bottom:86px}
 </div>
 
 <script>
-const APP_VERSION='v1.15.1';
+const APP_VERSION='v1.15.2';
 function buzz(p){try{if(navigator.vibrate)navigator.vibrate(p);}catch(e){}}
 document.getElementById('appVer').textContent=APP_VERSION;
 const EQUIPS=[['pdc','Poids du corps'],['barre','Barre'],['trx','TRX'],['anneaux','Anneaux'],['box','Box'],['kb','Kettlebell'],['gilet','Gilet lesté'],['mb','Med ball'],['slider','Plaquettes']];
