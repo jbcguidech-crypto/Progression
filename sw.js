@@ -2,7 +2,7 @@
    Stratégie : network-first pour la page (toujours la dernière version en ligne,
    cache en secours hors-ligne) ; cache-first pour les icônes/manifest.
    Plus besoin de monter la version à chaque déploiement de index.html. */
-const CACHE = 'progression-v2026-07-10';
+const CACHE = 'progression-v2026-07-12';
 const ASSETS = [
   './',
   './index.html',

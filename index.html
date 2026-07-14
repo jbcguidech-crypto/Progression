@@ -6,11 +6,11 @@
   <meta name="theme-color" content="#3E6E55">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Progression">
+  <meta name="apple-mobile-web-app-title" content="WOD">
   <link rel="manifest" href="progression.webmanifest">
   <link rel="apple-touch-icon" href="progression-192.png">
   <script>(function(){try{var s=JSON.parse(localStorage.getItem('progression_v1')||'{}');var t=s.theme||'auto';var eff=t;if(t==='auto'){var h=new Date().getHours();var sd=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches;eff=(h>=19||h<7||sd)?'dark':'light';}document.documentElement.setAttribute('data-theme',eff);}catch(e){}})();</script>
-<title>Progression</title>
+<title>WOD</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -211,7 +211,7 @@ body{padding-bottom:86px}
 <div id="installBar"><b id="installTxt">Installer l'app sur ton écran d'accueil</b><button id="installBtn">Installer</button><button id="installClose" aria-label="Fermer">✕</button></div>
 <div class="wrap">
   <header>
-    <div class="logo">Progression<small>monter en niveau, mouvement par mouvement</small></div>
+    <div class="logo">WOD<small>monter en niveau, mouvement par mouvement</small></div>
     <div style="display:flex;align-items:flex-start;gap:7px;flex:none">
       <span class="ver" id="appVer">—</span>
       <button class="hbtn" onclick="openSettings()" aria-label="Réglages">⚙</button>
@@ -349,7 +349,7 @@ body{padding-bottom:86px}
 </div>
 
 <script>
-const APP_VERSION='v1.15.0';
+const APP_VERSION='v1.15.1';
 function buzz(p){try{if(navigator.vibrate)navigator.vibrate(p);}catch(e){}}
 document.getElementById('appVer').textContent=APP_VERSION;
 const EQUIPS=[['pdc','Poids du corps'],['barre','Barre'],['trx','TRX'],['anneaux','Anneaux'],['box','Box'],['kb','Kettlebell'],['gilet','Gilet lesté'],['mb','Med ball'],['slider','Plaquettes']];
