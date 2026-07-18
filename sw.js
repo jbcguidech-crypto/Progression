@@ -1,59 +1,47 @@
-/* Progression — service worker
-   Stratégie : network-first pour la page (toujours la dernière version en ligne,
-   cache en secours hors-ligne) ; cache-first pour les icônes/manifest.
-   Plus besoin de monter la version à chaque déploiement de index.html. */
-const CACHE = 'progression-v2026-07-17';
+/* Poutre — service worker (offline) */
+const CACHE = "poutre-v2";
 const ASSETS = [
-  './',
-  './index.html',
-  './progression.webmanifest',
-  './progression-192.png',
-  './progression-512.png',
-  './progression-mask.png'
+  "./",
+  "./index.html",
+  "./manifest.json",
+  "./icon-192.png",
+  "./icon-512.png",
+  "./icon-512-maskable.png",
+  "./apple-touch-icon.png"
 ];
 
-self.addEventListener('install', function (e) {
-  e.waitUntil(
-    caches.open(CACHE).then(function (c) { return c.addAll(ASSETS); }).catch(function(){})
-  );
-  self.skipWaiting();
+self.addEventListener("install", e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
 
-self.addEventListener('activate', function (e) {
+self.addEventListener("activate", e => {
   e.waitUntil(
-    caches.keys().then(function (keys) {
-      return Promise.all(keys.filter(function (k) { return k !== CACHE; })
-        .map(function (k) { return caches.delete(k); }));
-    }).then(function () { return self.clients.claim(); })
+    caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
-self.addEventListener('fetch', function (e) {
-  var req = e.request;
-  if (req.method !== 'GET') return;
-
-  // Navigations + index.html : réseau d'abord, cache en secours (hors-ligne)
-  if (req.mode === 'navigate' || req.url.indexOf('index.html') >= 0) {
+self.addEventListener("fetch", e => {
+  const req = e.request;
+  if (req.method !== "GET") return;
+  // Google Fonts : cache à la volée (best-effort)
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) {
     e.respondWith(
-      fetch(req).then(function (res) {
-        var copy = res.clone();
-        caches.open(CACHE).then(function (c) { c.put(req, copy); });
+      caches.match(req).then(hit => hit || fetch(req).then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
         return res;
-      }).catch(function () {
-        return caches.match(req).then(function (m) { return m || caches.match('./index.html'); });
-      })
+      }).catch(() => hit))
     );
     return;
   }
-
-  // Le reste (icônes, manifest, polices) : cache d'abord, réseau en secours
+  // App shell : cache d'abord, réseau en secours
   e.respondWith(
-    caches.match(req).then(function (m) {
-      return m || fetch(req).then(function (res) {
-        var copy = res.clone();
-        caches.open(CACHE).then(function (c) { c.put(req, copy); });
-        return res;
-      });
-    })
+    caches.match(req).then(hit => hit || fetch(req).then(res => {
+      const copy = res.clone();
+      caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+      return res;
+    }).catch(() => caches.match("./index.html")))
   );
 });
