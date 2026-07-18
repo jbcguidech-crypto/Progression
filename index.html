@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
 <title>Poutre — entraînement doigts</title>
 <meta name="description" content="Entraînement sur poutre et hangboard : programmes, timer et suivi de progression." />
-<meta name="theme-color" content="#14181F" />
+<meta name="theme-color" content="#F5F2EB" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="Poutre" />
 <link rel="manifest" href="manifest.json" />
 <link rel="icon" href="icon-192.png" type="image/png" />
@@ -18,15 +18,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet" />
 <style>
 :root{
-  --bg:#14181F; --bg-2:#1A202A; --surface:#212A35; --surface-2:#2A3441;
-  --line:rgba(236,234,225,.09); --line-strong:rgba(236,234,225,.16);
-  --chalk:#ECEAE1; --muted:#8A94A2; --muted-2:#616B78;
-  --hot:#FF5A34; --hot-deep:#C9421F;
-  --cool:#31D6C0; --cool-deep:#12A28F;
-  --amber:#FFC24B;
+  --bg:#F5F2EB; --bg-2:#FFFFFF; --surface:#FFFFFF; --surface-2:#EEEAE0;
+  --line:rgba(28,35,45,.10); --line-strong:rgba(28,35,45,.20);
+  --chalk:#1F2733; --muted:#5D6774; --muted-2:#98A0AB;
+  --hot:#E84E2A; --hot-deep:#C33D1B;
+  --cool:#14B8A2; --cool-deep:#0E8877;
+  --amber:#DD9A18; --amber-deep:#B87E0E;
   --font:'Archivo',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
   --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
   --r:16px; --r-lg:22px;
+  --shadow:0 1px 2px rgba(20,25,32,.05),0 4px 14px rgba(20,25,32,.05);
   --safe-b:env(safe-area-inset-bottom,0px);
   --safe-t:env(safe-area-inset-top,0px);
 }
@@ -36,7 +37,7 @@ body{
   font-family:var(--font); background:var(--bg); color:var(--chalk);
   line-height:1.45; overflow-x:hidden;
   -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
-  background-image:radial-gradient(120% 60% at 50% -10%, #1E2530 0%, var(--bg) 55%);
+  background-image:radial-gradient(120% 60% at 50% -10%, #FFFFFF 0%, var(--bg) 55%);
 }
 button{font-family:inherit;color:inherit;border:none;background:none;cursor:pointer}
 input,select,textarea{font-family:inherit;color:inherit}
@@ -58,31 +59,31 @@ h2{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute
 h2:first-of-type{margin-top:8px}
 
 /* ---------- Cards ---------- */
-.card{background:linear-gradient(180deg,var(--surface),var(--bg-2));border:1px solid var(--line);
-  border-radius:var(--r);padding:16px}
+.card{background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);padding:16px;box-shadow:var(--shadow)}
 .card+.card{margin-top:12px}
 
 /* stat chips */
 .chips{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.chip{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r);padding:13px 12px;text-align:center}
+.chip{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:13px 12px;text-align:center;box-shadow:var(--shadow)}
 .chip .n{font-family:var(--mono);font-size:24px;font-weight:800;line-height:1;letter-spacing:-.03em}
 .chip .l{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:7px;font-weight:600}
-.chip.hot .n{color:var(--hot)} .chip.cool .n{color:var(--cool)} .chip.amber .n{color:var(--amber)}
+.chip.hot .n{color:var(--hot-deep)} .chip.cool .n{color:var(--cool-deep)} .chip.amber .n{color:var(--amber-deep)}
 
 /* ---------- Program card ---------- */
 .prog{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:12px}
 .prog .rail{position:absolute;left:0;top:0;bottom:0;width:4px}
 .prog.hot .rail{background:linear-gradient(var(--hot),var(--hot-deep))}
 .prog.cool .rail{background:linear-gradient(var(--cool),var(--cool-deep))}
-.prog.amber .rail{background:linear-gradient(var(--amber),#C98A16)}
+.prog.amber .rail{background:linear-gradient(var(--amber),var(--amber-deep))}
 .prog-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding-left:8px}
 .prog-name{font-size:18px;font-weight:800;letter-spacing:-.01em}
 .prog-type{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-top:2px}
 .prog-desc{font-size:13.5px;color:var(--muted);padding-left:8px}
 .prog-meta{display:flex;flex-wrap:wrap;gap:6px;padding-left:8px}
 .tag{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--chalk);
-  background:rgba(236,234,225,.06);border:1px solid var(--line);border-radius:7px;padding:4px 8px;white-space:nowrap}
-.tag b{color:var(--cool);font-weight:800}
+  background:rgba(28,35,45,.05);border:1px solid var(--line);border-radius:7px;padding:4px 8px;white-space:nowrap}
+.tag b{color:var(--cool-deep);font-weight:800}
 .prog-actions{display:flex;gap:8px;padding-left:8px;margin-top:2px}
 
 /* ---------- Buttons ---------- */
@@ -90,25 +91,25 @@ h2:first-of-type{margin-top:8px}
   font-weight:700;font-size:15px;letter-spacing:.01em;border-radius:13px;padding:13px 16px;
   transition:transform .12s,filter .12s,background .12s;user-select:none}
 .btn:active{transform:scale(.97)}
-.btn-primary{background:linear-gradient(180deg,var(--cool),var(--cool-deep));color:#06110F;flex:1}
+.btn-primary{background:linear-gradient(180deg,var(--cool),var(--cool-deep));color:#FFFFFF;flex:1;box-shadow:0 2px 8px rgba(14,136,119,.28)}
 .btn-primary:active{filter:brightness(1.06)}
-.btn-hot{background:linear-gradient(180deg,var(--hot),var(--hot-deep));color:#1a0a05;flex:1}
-.btn-ghost{background:rgba(236,234,225,.06);border:1px solid var(--line);color:var(--chalk)}
+.btn-hot{background:linear-gradient(180deg,var(--hot),var(--hot-deep));color:#FFFFFF;flex:1}
+.btn-ghost{background:rgba(28,35,45,.05);border:1px solid var(--line);color:var(--chalk)}
 .btn-sm{padding:9px 12px;font-size:13px;border-radius:10px}
 .btn-block{width:100%}
 .btn:disabled{opacity:.4;pointer-events:none}
-.icon-btn{width:40px;height:40px;border-radius:11px;background:rgba(236,234,225,.06);
+.icon-btn{width:40px;height:40px;border-radius:11px;background:rgba(28,35,45,.05);
   border:1px solid var(--line);display:grid;place-items:center;flex:0 0 auto}
 .icon-btn svg{width:18px;height:18px;stroke:var(--chalk);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
 /* ---------- Bottom nav ---------- */
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:40;
-  background:rgba(20,24,31,.86);backdrop-filter:blur(18px);
+  background:rgba(250,248,243,.88);backdrop-filter:blur(18px);
   border-top:1px solid var(--line);padding:8px 12px calc(8px + var(--safe-b))}
 .nav-inner{max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr)}
 .nav button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 4px;border-radius:12px;color:var(--muted-2);font-size:10.5px;font-weight:700;letter-spacing:.04em}
 .nav button svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.nav button.active{color:var(--cool)}
+.nav button.active{color:var(--cool-deep)}
 
 /* ---------- Empty state ---------- */
 .empty{text-align:center;padding:40px 20px;color:var(--muted)}
@@ -116,12 +117,13 @@ h2:first-of-type{margin-top:8px}
 .empty p{font-size:14px;max-width:260px;margin:0 auto}
 
 /* ---------- Modal / sheet ---------- */
-.sheet-bg{position:fixed;inset:0;z-index:60;background:rgba(6,9,13,.66);backdrop-filter:blur(3px);
+.sheet-bg{position:fixed;inset:0;z-index:60;background:rgba(20,25,32,.38);backdrop-filter:blur(3px);
   display:flex;align-items:flex-end;justify-content:center;opacity:0;animation:fade .2s forwards}
 @keyframes fade{to{opacity:1}}
 .sheet{width:100%;max-width:520px;background:var(--bg-2);border:1px solid var(--line);
   border-radius:24px 24px 0 0;padding:8px 18px calc(22px + var(--safe-b));max-height:92vh;overflow-y:auto;
-  transform:translateY(100%);animation:up .34s cubic-bezier(.2,.85,.2,1) forwards}
+  transform:translateY(100%);animation:up .34s cubic-bezier(.2,.85,.2,1) forwards;
+  box-shadow:0 -12px 40px rgba(20,25,32,.18)}
 @keyframes up{to{transform:none}}
 .grab{width:38px;height:4px;border-radius:3px;background:var(--line-strong);margin:6px auto 14px}
 .sheet h3{font-size:20px;font-weight:800;letter-spacing:-.01em;margin-bottom:4px}
@@ -130,9 +132,9 @@ h2:first-of-type{margin-top:8px}
 /* form */
 .field{margin-bottom:14px}
 .field label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:7px}
-.input,select.input{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:12px;
+.input,select.input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:12px;
   padding:12px 13px;font-size:15px;color:var(--chalk);appearance:none}
-.input:focus,select.input:focus{outline:none;border-color:var(--cool)}
+.input:focus,select.input:focus{outline:none;border-color:var(--cool-deep)}
 textarea.input{resize:vertical;min-height:64px;line-height:1.4}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
@@ -140,17 +142,17 @@ textarea.input{resize:vertical;min-height:64px;line-height:1.4}
 .selectwrap::after{content:"";position:absolute;right:14px;top:50%;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-70%) rotate(45deg);pointer-events:none}
 
 /* stepper */
-.stepper{display:flex;align-items:stretch;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.stepper button{width:44px;font-size:22px;font-weight:700;color:var(--cool);background:rgba(49,214,192,.06)}
-.stepper button:active{background:rgba(49,214,192,.14)}
+.stepper{display:flex;align-items:stretch;background:var(--bg);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.stepper button{width:44px;font-size:22px;font-weight:700;color:var(--cool-deep);background:rgba(20,184,162,.08)}
+.stepper button:active{background:rgba(20,184,162,.18)}
 .stepper .val{flex:1;text-align:center;font-family:var(--mono);font-weight:800;font-size:17px;align-self:center;padding:11px 0}
 .stepper .val small{color:var(--muted);font-weight:600;font-size:12px;margin-left:2px}
 
 /* RPE */
 .rpe{display:flex;gap:6px}
-.rpe button{flex:1;aspect-ratio:1;border-radius:10px;background:var(--surface);border:1px solid var(--line);
+.rpe button{flex:1;aspect-ratio:1;border-radius:10px;background:var(--bg);border:1px solid var(--line);
   font-family:var(--mono);font-weight:800;font-size:15px;color:var(--muted)}
-.rpe button.on{background:linear-gradient(180deg,var(--hot),var(--hot-deep));color:#1a0a05;border-color:transparent}
+.rpe button.on{background:linear-gradient(180deg,var(--hot),var(--hot-deep));color:#FFFFFF;border-color:transparent}
 
 /* history rows */
 .hist{display:flex;align-items:center;gap:12px;padding:13px 4px;border-bottom:1px solid var(--line)}
@@ -173,7 +175,7 @@ canvas{width:100%;display:block}
 #session{position:fixed;inset:0;z-index:80;display:none;flex-direction:column;
   color:#fff;transition:background .35s ease}
 #session.on{display:flex}
-.sess-bg-prep{background:radial-gradient(130% 90% at 50% 20%,#3a3410,#14181F)}
+.sess-bg-prep{background:radial-gradient(130% 90% at 50% 20%,#E9A93B,#7A5406)}
 .sess-bg-hang{background:radial-gradient(130% 90% at 50% 25%,var(--hot),var(--hot-deep) 70%,#5c1c0c)}
 .sess-bg-restRep{background:radial-gradient(130% 90% at 50% 25%,var(--cool),var(--cool-deep) 72%,#0a4c44)}
 .sess-bg-restSet{background:radial-gradient(130% 90% at 50% 25%,#3aa0d6,#16607f 72%,#0a3346)}
@@ -206,16 +208,47 @@ canvas{width:100%;display:block}
 .sctl svg{width:20px;height:20px;stroke:#fff;fill:#fff;stroke-width:1.5}
 .sctl.wide{flex:1.5}
 
+/* séance du jour */
+.rec-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.prog .rec-head{padding-left:8px}
+.rec-badge{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;padding:5px 10px;border-radius:999px}
+.rec-badge.cool{background:rgba(20,184,162,.14);color:var(--cool-deep)}
+.rec-badge.hot{background:rgba(232,78,42,.12);color:var(--hot-deep)}
+.rec-badge.amber{background:rgba(221,154,24,.16);color:var(--amber-deep)}
+.rec-title{font-size:20px;font-weight:800;letter-spacing:-.01em}
+.rec-txt{font-size:13.5px;color:var(--muted);margin:6px 0 12px}
+.goalseg{display:flex;gap:6px}
+.goalseg button{flex:1;padding:11px 8px;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-weight:700;font-size:13.5px;color:var(--muted)}
+.goalseg button.on{background:linear-gradient(180deg,var(--cool),var(--cool-deep));color:#fff;border-color:transparent}
+.days{display:flex;gap:6px}
+.days button{flex:1;aspect-ratio:1;border-radius:50%;background:var(--bg);border:1px solid var(--line);font-weight:800;font-size:13px;color:var(--muted)}
+.days button.on{background:linear-gradient(180deg,var(--cool),var(--cool-deep));color:#fff;border-color:transparent}
+
+/* cycle par blocs */
+.cyctoggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:13px 14px;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-weight:700;font-size:14px;color:var(--muted);text-align:left}
+.cyctoggle .sw{width:44px;height:26px;border-radius:999px;background:var(--line-strong);position:relative;flex:0 0 auto;transition:background .2s}
+.cyctoggle .sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(20,25,32,.25)}
+.cyctoggle.on{color:var(--chalk);border-color:var(--cool-deep)}
+.cyctoggle.on .sw{background:var(--cool-deep)}
+.cyctoggle.on .sw::after{transform:translateX(18px)}
+.cycrows{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.cycrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;
+  border-radius:11px;background:var(--bg);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--muted)}
+.cycrow .wk{font-family:var(--mono);font-size:11px;font-weight:800}
+.cycrow.cur{background:rgba(20,184,162,.10);border-color:var(--cool-deep);color:var(--chalk)}
+.cycrow.cur .wk{color:var(--cool-deep)}
+
 /* toast */
 #toast{position:fixed;left:50%;bottom:calc(96px + var(--safe-b));transform:translateX(-50%) translateY(20px);
-  background:var(--surface-2);border:1px solid var(--line-strong);color:var(--chalk);
+  background:#FFFFFF;border:1px solid var(--line-strong);color:var(--chalk);
   padding:12px 18px;border-radius:14px;font-size:13.5px;font-weight:600;z-index:90;opacity:0;pointer-events:none;
-  transition:opacity .25s,transform .25s;box-shadow:0 12px 40px rgba(0,0,0,.4);max-width:88%;text-align:center}
+  transition:opacity .25s,transform .25s;box-shadow:0 12px 40px rgba(20,25,32,.18);max-width:88%;text-align:center}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 .hint{font-size:12px;color:var(--muted-2);text-align:center;margin-top:14px;padding:0 10px}
-.installbar{display:none;align-items:center;gap:12px;background:linear-gradient(180deg,var(--surface),var(--bg-2));
-  border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:16px}
+.installbar{display:none;align-items:center;gap:12px;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:16px;box-shadow:var(--shadow)}
 .installbar.show{display:flex}
 .installbar .txt{flex:1;font-size:13.5px;color:var(--muted)}
 .installbar .txt b{color:var(--chalk)}
@@ -404,21 +437,231 @@ function render(){
 
 const GLYPH = `<img class="glyph" src="icon-192.png" alt="" width="34" height="34" style="object-fit:cover">`;
 
+/* ---------- Calendrier & séance du jour ---------- */
+let plan = store.get("plan", null);
+function savePlan(){ store.set("plan", plan); }
+const ROTATIONS = {
+  force:      ["maxhangs","force5","minedge","pince"],
+  endurance:  ["rep73","rep1515","eco3030","endurance"],
+  mixte:      ["maxhangs","rep73","force5","rep1515","minedge","eco3030"],
+  deload:     ["submax"]
+};
+const GOAL_TXT = { force:"objectif force", endurance:"objectif endurance", mixte:"cycle mixte force / endurance" };
+
+/* ---- Cycle par blocs ---- */
+const CYCLES = {
+  force: [
+    {name:"Force",           weeks:3, rot:"force"},
+    {name:"Mixte",           weeks:2, rot:"mixte"},
+    {name:"Semaine légère",  weeks:1, rot:"deload"}
+  ],
+  endurance: [
+    {name:"Endurance",       weeks:3, rot:"endurance"},
+    {name:"Mixte",           weeks:2, rot:"mixte"},
+    {name:"Semaine légère",  weeks:1, rot:"deload"}
+  ],
+  mixte: [
+    {name:"Force",           weeks:2, rot:"force"},
+    {name:"Endurance",       weeks:2, rot:"endurance"},
+    {name:"Mixte",           weeks:1, rot:"mixte"},
+    {name:"Semaine légère",  weeks:1, rot:"deload"}
+  ]
+};
+function mondayOf(d){ const x=new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate()-((x.getDay()+6)%7)); return x; }
+function cycleInfo(){
+  if(!plan || !plan.cycleStart) return null;
+  const blocks = CYCLES[plan.goal] || CYCLES.mixte;
+  const total = blocks.reduce((a,b)=>a+b.weeks,0);
+  const w = Math.floor((mondayOf(new Date()) - mondayOf(new Date(plan.cycleStart)))/(7*864e5));
+  const week = ((w % total)+total)%total; // boucle
+  let acc=0, cur=blocks[0], bw=0;
+  for(const b of blocks){ if(week < acc+b.weeks){ cur=b; bw=week-acc; break; } acc+=b.weeks; }
+  return { blocks, total, week, blockName:cur.name, rot:cur.rot, blockWeek:bw+1, blockWeeks:cur.weeks };
+}
+
+/* ---- Progression de lest ---- */
+function loadSuggestion(p){
+  const prev = sessions.find(x=>x.programId===p.id);
+  if(!prev) return null;
+  let d=0;
+  if(prev.rpe<=6) d=2; else if(prev.rpe===7) d=1; else if(prev.rpe>=9) d=-2;
+  return { kg: prev.loadKg + d, delta:d, prev };
+}
+
+function lastDoneAt(pid){
+  const s = sessions.find(x=>x.programId===pid);
+  return s ? new Date(s.dateISO).getTime() : 0;
+}
+function pickNext(list){
+  const avail = list.map(id=>programs.find(p=>p.id===id)).filter(Boolean);
+  avail.sort((a,b)=>lastDoneAt(a.id)-lastDoneAt(b.id)); // le moins récemment fait d'abord
+  return avail[0];
+}
+function todayRec(){
+  if(!plan) return { kind:"setup" };
+  const now = new Date(), dow = now.getDay();
+  const submax = programs.find(p=>p.id==="submax");
+  if(sessions.some(s=>dayKey(s.dateISO)===dayKey(now))) return { kind:"done", alt:submax };
+  if(!plan.days.includes(dow)) return { kind:"rest", alt:submax };
+  const last = sessions[0];
+  const hrs = last ? (now - new Date(last.dateISO))/36e5 : Infinity;
+  if(last && last.rpe>=9 && hrs<40){
+    return { kind:"fatigue", prog:submax,
+      reason:`Ta dernière séance (${last.programName}) était très dure — RPE ${last.rpe} il y a moins de 48 h. Les doigts progressent pendant le repos : aujourd'hui, du sous-maximal léger, pas plus.` };
+  }
+  const cyc = cycleInfo();
+  if(cyc && cyc.rot==="deload"){
+    return { kind:"train", prog:submax, cyc, deload:true,
+      reason:`Semaine légère du cycle (sem. ${cyc.week+1}/${cyc.total}) : on décharge volontairement. Sous-maximal uniquement — c'est cette semaine que le corps encaisse les gains des blocs précédents.` };
+  }
+  const rotKey = cyc ? cyc.rot : (plan.goal in ROTATIONS ? plan.goal : "mixte");
+  const prog = pickNext(ROTATIONS[rotKey] || ROTATIONS.mixte);
+  const ctx = cyc
+    ? `Semaine ${cyc.week+1}/${cyc.total} du cycle — bloc ${cyc.blockName} (${cyc.blockWeek}/${cyc.blockWeeks}).`
+    : `Jour d'entraînement (${GOAL_TXT[plan.goal]}).`;
+  const rot = lastDoneAt(prog.id)
+    ? `« ${prog.name} » est le programme du bloc que tu n'as pas fait depuis le plus longtemps — on fait tourner les stimuli.`
+    : `Tu n'as pas encore fait « ${prog.name} » : on l'intègre aujourd'hui.`;
+  const sug = loadSuggestion(prog);
+  let sugTxt = "";
+  if(sug && sug.delta>0) sugTxt = ` Dernière fois : ${sug.prev.loadKg>0?"+":""}${sug.prev.loadKg} kg à RPE ${sug.prev.rpe} → on monte à ${sug.kg>0?"+":""}${sug.kg} kg.`;
+  else if(sug && sug.delta<0) sugTxt = ` RPE ${sug.prev.rpe} la dernière fois : on redescend à ${sug.kg>0?"+":""}${sug.kg} kg pour consolider.`;
+  return { kind:"train", prog, cyc, sug, reason: ctx+" "+rot+sugTxt };
+}
+function recCard(r){
+  const gear = `<button class="icon-btn" id="recEdit" aria-label="Modifier le calendrier" style="width:34px;height:34px"><svg viewBox="0 0 24 24"><path d="M4 8h10M18 8h2M4 16h2M10 16h10"/><circle cx="16" cy="8" r="2.5"/><circle cx="7" cy="16" r="2.5"/></svg></button>`;
+  if(r.kind==="setup") return `<div class="card">
+    <div class="rec-head"><div class="rec-badge amber">À configurer</div></div>
+    <div class="rec-title">Séance du jour</div>
+    <p class="rec-txt">Indique tes jours d'entraînement et ton objectif : chaque jour, je te proposerai la bonne séance en fonction de ton historique.</p>
+    <button class="btn btn-primary btn-block" id="recSetup">Configurer mon calendrier</button></div>`;
+  if(r.kind==="done") return `<div class="card">
+    <div class="rec-head"><div class="rec-badge cool">✓ Fait</div>${gear}</div>
+    <div class="rec-title">C'est fait pour aujourd'hui</div>
+    <p class="rec-txt">Ta séance du jour est déjà enregistrée. Laisse les doigts récupérer — ou fais quelques suspensions très légères si tu veux bouger.</p>
+    <button class="btn btn-ghost btn-block" id="recAlt">Sous-max léger (optionnel)</button></div>`;
+  if(r.kind==="rest") return `<div class="card">
+    <div class="rec-head"><div class="rec-badge cool">Repos</div>${gear}</div>
+    <div class="rec-title">Jour de repos</div>
+    <p class="rec-txt">Pas de poutre prévue aujourd'hui dans ton calendrier. C'est là que les tendons s'adaptent. Si tu veux quand même toucher du bois : sous-maximal léger uniquement.</p>
+    <button class="btn btn-ghost btn-block" id="recAlt">Sous-max léger (optionnel)</button></div>`;
+  const p = r.prog;
+  let badge;
+  if(r.deload) badge = `<div class="rec-badge amber">Sem. ${r.cyc.week+1}/${r.cyc.total} · Décharge</div>`;
+  else if(r.kind==="fatigue") badge = `<div class="rec-badge amber">Récupération</div>`;
+  else if(r.cyc) badge = `<div class="rec-badge ${p.color==="hot"?"hot":p.color==="amber"?"amber":"cool"}">Sem. ${r.cyc.week+1}/${r.cyc.total} · ${esc(r.cyc.blockName)}</div>`;
+  else badge = `<div class="rec-badge ${p.color==="hot"?"hot":p.color==="amber"?"amber":"cool"}">Séance du jour</div>`;
+  const sugTag = r.sug ? `<span class="tag">Lest conseillé <b>${r.sug.kg>0?"+":""}${r.sug.kg}</b>kg</span>` : "";
+  return `<div class="card prog ${p.color}">
+    <div class="rail"></div>
+    <div class="rec-head">${badge}${gear}</div>
+    <div class="prog-head"><div><div class="prog-name">${esc(p.name)}</div><div class="prog-type">${esc(p.type)}</div></div></div>
+    <div class="prog-desc">${esc(r.reason)}</div>
+    <div class="prog-meta">
+      <span class="tag"><b>${p.hangSec}</b>s${p.restRepSec?` / ${p.restRepSec}s`:""}</span>
+      <span class="tag"><b>${p.reps}</b>×<b>${p.sets}</b></span>
+      <span class="tag"><b>${p.edgeMm}</b>mm</span>
+      ${sugTag}
+      <span class="tag">≈<b>${Math.round(estDuration(p)/60)}</b>min</span>
+    </div>
+    <div class="prog-actions">
+      <button class="btn btn-ghost btn-sm" id="recWarm">Échauffement</button>
+      <button class="btn btn-primary btn-sm" id="recStart">Démarrer</button>
+    </div>
+  </div>`;
+}
+function bindRec(r){
+  const q=id=>document.getElementById(id);
+  const ed=q("recEdit"); if(ed) ed.onclick=openPlanSheet;
+  const su=q("recSetup"); if(su) su.onclick=openPlanSheet;
+  const al=q("recAlt"); if(al) al.onclick=()=>{ const p=programs.find(x=>x.id==="submax"); if(p) startSession(p); };
+  const wa=q("recWarm"); if(wa) wa.onclick=()=>{ const p=programs.find(x=>x.id==="echauffement"); if(p) startSession(p); };
+  const st=q("recStart"); if(st&&r.prog) st.onclick=()=>{
+    const prog = r.sug ? {...r.prog, addedKg:r.sug.kg} : r.prog;
+    startSession(prog);
+  };
+}
+function openPlanSheet(){
+  const cur = plan ? {goal:plan.goal, days:[...plan.days], cycle:!!plan.cycleStart} : {goal:"mixte", days:[2,4,6], cycle:false};
+  const DAYS = [["L",1],["M",2],["M",3],["J",4],["V",5],["S",6],["D",0]];
+  sheet(`
+    <h3>Calendrier d'entraînement</h3>
+    <div class="sub">Tes jours de poutre et ton objectif. La séance du jour s'adapte ensuite à ton historique.</div>
+    <div class="field"><label>Objectif</label><div class="goalseg" id="pGoal">
+      ${[["force","Force"],["mixte","Mixte"],["endurance","Endurance"]].map(([v,l])=>`<button data-v="${v}" class="${v===cur.goal?"on":""}">${l}</button>`).join("")}
+    </div></div>
+    <div class="field"><label>Jours d'entraînement</label><div class="days" id="pDays">
+      ${DAYS.map(([l,d])=>`<button data-d="${d}" class="${cur.days.includes(d)?"on":""}">${l}</button>`).join("")}
+    </div></div>
+    <div class="field"><label>Planification</label>
+      <button class="cyctoggle ${cur.cycle?"on":""}" id="pCyc"><span id="pCycLbl"></span><span class="sw"></span></button>
+      <div class="cycrows" id="pCycRows" style="display:${cur.cycle?"flex":"none"}"></div>
+    </div>
+    <p class="hint" style="text-align:left;margin:0 0 16px">2 à 3 jours de poutre par semaine suffisent largement — les doigts progressent au repos. Les autres jours, le sous-max léger reste possible.</p>
+    <div class="row2">
+      <button class="btn btn-ghost" id="pCancel">Annuler</button>
+      <button class="btn btn-primary" id="pSave">Enregistrer</button>
+    </div>
+  `);
+  function cycBlocks(){ return CYCLES[cur.goal] || CYCLES.mixte; }
+  function renderCyc(){
+    const blocks = cycBlocks(), total = blocks.reduce((a,b)=>a+b.weeks,0);
+    $("#pCycLbl").textContent = `Cycle par blocs · ${total} semaines`;
+    // semaine courante si le cycle est déjà actif avec le même objectif
+    let curWeek = -1;
+    if(plan && plan.cycleStart && plan.goal===cur.goal && cur.cycle){
+      const info = cycleInfo(); if(info) curWeek = info.week;
+    }
+    let acc=0;
+    $("#pCycRows").innerHTML = blocks.map(b=>{
+      const from=acc+1, to=acc+b.weeks; 
+      const isCur = curWeek>=acc && curWeek<acc+b.weeks;
+      acc+=b.weeks;
+      return `<div class="cycrow ${isCur?"cur":""}"><span>${b.name}${isCur?" — en cours":""}</span><span class="wk">sem ${from===to?from:from+"–"+to}</span></div>`;
+    }).join("");
+    $("#pCycRows").style.display = cur.cycle ? "flex" : "none";
+    $("#pCyc").classList.toggle("on", cur.cycle);
+  }
+  renderCyc();
+  $("#pGoal").querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    $("#pGoal").querySelectorAll("button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); cur.goal=b.dataset.v; renderCyc();
+  });
+  $("#pDays").querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    const d=+b.dataset.d;
+    if(cur.days.includes(d)){ cur.days=cur.days.filter(x=>x!==d); b.classList.remove("on"); }
+    else { cur.days.push(d); b.classList.add("on"); }
+  });
+  $("#pCyc").onclick=()=>{ cur.cycle=!cur.cycle; renderCyc(); };
+  $("#pCancel").onclick=closeSheet;
+  $("#pSave").onclick=()=>{
+    if(!cur.days.length){ toast("Choisis au moins un jour"); return; }
+    let cycleStart = null;
+    if(cur.cycle){
+      // conserve la position dans le cycle si l'objectif n'a pas changé, sinon repart de la semaine en cours
+      cycleStart = (plan && plan.cycleStart && plan.goal===cur.goal) ? plan.cycleStart : mondayOf(new Date()).toISOString();
+    }
+    plan={goal:cur.goal, days:cur.days.sort((a,b)=>a-b), cycleStart}; savePlan(); closeSheet(); render();
+    toast(cur.cycle ? "Cycle par blocs activé" : "Calendrier enregistré");
+  };
+}
+
 function renderTrain(){
   const s = computeStreak();
   const total = sessions.length;
   const totalHang = sessions.reduce((a,x)=>a+(x.hangTimeSec||0),0);
   const last = sessions[0];
+  const rec = todayRec();
   const suggested = programs.slice(0,3);
   view.innerHTML = `
     <div class="topbar">
       <div class="brand">${GLYPH}<div><div class="eyebrow">Poutre</div><h1>Prêt à tirer ?</h1></div></div>
     </div>
     <div id="installbar" class="installbar">
-      <div class="txt"><b>Installe l’app</b><br>Ajoute-la à ton écran d’accueil pour un accès plein écran, hors-ligne.</div>
+      <div class="txt"><b>Installe l'app</b><br>Ajoute-la à ton écran d'accueil pour un accès plein écran, hors-ligne.</div>
       <button class="btn btn-ghost btn-sm" id="installBtn">Installer</button>
     </div>
-    <div class="chips">
+    ${recCard(rec)}
+    <div class="chips" style="margin-top:12px">
       <div class="chip cool"><div class="n">${s}</div><div class="l">Jours de suite</div></div>
       <div class="chip"><div class="n">${total}</div><div class="l">Séances</div></div>
       <div class="chip amber"><div class="n">${Math.round(totalHang/60)}</div><div class="l">Min suspendu</div></div>
@@ -431,10 +674,11 @@ function renderTrain(){
           <div class="mono" style="font-size:12px;color:var(--muted);margin-top:2px">${relDate(last.dateISO)} · ${last.loadKg>0?"+":""}${last.loadKg} kg · ${last.edgeMm} mm · RPE ${last.rpe}</div>
         </div>
       </div>` : ""}
-    <h2>Lancer un programme</h2>
+    <h2>Ou choisis toi-même</h2>
     ${suggested.map(progCard).join("")}
-    <div class="hint">Astuce : garde le téléphone posé au pied de la poutre. L’écran se colore selon la phase — rouge tu tires, turquoise tu récupères.</div>
+    <div class="hint">Astuce : garde le téléphone posé au pied de la poutre. L'écran se colore selon la phase — rouge tu tires, turquoise tu récupères.</div>
   `;
+  bindRec(rec);
   suggested.forEach(p=>bindCard(p));
   setupInstall();
 }
@@ -593,20 +837,20 @@ function drawChart(){
   const maxKg=Math.max(10,...data.map(d=>Math.abs(d.loadKg)));
   const maxMin=Math.max(1,...data.map(d=>d.hangTimeSec/60));
   // grille
-  g.strokeStyle="rgba(236,234,225,.07)"; g.lineWidth=1; g.font="600 10px "+"'JetBrains Mono',monospace";
+  g.strokeStyle="rgba(28,35,45,.08)"; g.lineWidth=1; g.font="600 10px "+"'JetBrains Mono',monospace";
   for(let i=0;i<=3;i++){ const y=padT+ch*i/3; g.beginPath(); g.moveTo(padL,y); g.lineTo(padL+cw,y); g.stroke();
-    g.fillStyle="#616B78"; g.textAlign="right"; g.fillText(Math.round(maxKg*(1-i/3)),padL-6,y+3); }
+    g.fillStyle="#7A828E"; g.textAlign="right"; g.fillText(Math.round(maxKg*(1-i/3)),padL-6,y+3); }
   const n=data.length, slot=cw/Math.max(1,n), bw=Math.min(20,slot*0.42);
   data.forEach((d,i)=>{
     const cx=padL+slot*i+slot/2;
     // barre lest (hot)
     const hK=Math.abs(d.loadKg)/maxKg*ch;
-    g.fillStyle="#FF5A34"; roundRect(g,cx-bw-1,padT+ch-hK,bw,hK,4);
+    g.fillStyle="#E84E2A"; roundRect(g,cx-bw-1,padT+ch-hK,bw,hK,4);
     // barre temps (cool)
     const hM=(d.hangTimeSec/60)/maxMin*ch;
-    g.fillStyle="#31D6C0"; roundRect(g,cx+1,padT+ch-hM,bw,hM,4);
+    g.fillStyle="#14B8A2"; roundRect(g,cx+1,padT+ch-hM,bw,hM,4);
     // date
-    g.fillStyle="#616B78"; g.textAlign="center"; g.font="600 9px 'JetBrains Mono',monospace";
+    g.fillStyle="#7A828E"; g.textAlign="center"; g.font="600 9px 'JetBrains Mono',monospace";
     const dd=new Date(d.dateISO); g.fillText(dd.getDate()+"/"+(dd.getMonth()+1),cx,H-12);
   });
 }
