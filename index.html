@@ -54,6 +54,8 @@ input,select,textarea{font-family:inherit;color:inherit}
 .brand{display:flex;align-items:center;gap:10px}
 .brand .glyph{width:34px;height:34px;border-radius:9px;flex:0 0 auto}
 .eyebrow{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.ver{font-family:var(--mono);font-size:9.5px;font-weight:700;color:var(--muted-2);border:1px solid var(--line);
+  border-radius:6px;padding:1px 5px;margin-left:6px;letter-spacing:.05em;text-transform:none;vertical-align:middle}
 h1{font-size:27px;font-weight:800;letter-spacing:-.02em;line-height:1.05}
 h2{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:26px 2px 12px}
 h2:first-of-type{margin-top:8px}
@@ -301,6 +303,8 @@ canvas{width:100%;display:block}
    avec repli mémoire (fonctionne aussi en aperçu sandbox).
    ============================================================ */
 
+const APP_VERSION = "v6"; // incrémentée à chaque mise à jour — doit correspondre au cache du service worker
+
 /* ---------- Persistance ---------- */
 const store = (() => {
   let mem = {}, ok = true;
@@ -448,29 +452,34 @@ const ROTATIONS = {
 };
 const GOAL_TXT = { force:"objectif force", endurance:"objectif endurance", mixte:"cycle mixte force / endurance" };
 
-/* ---- Cycle par blocs ---- */
+/* ---- Cycle par blocs (6 / 8 / 12 / 16 semaines) ---- */
+const B=(name,weeks,rot)=>({name,weeks,rot});
+const F=w=>B("Force",w,"force"), E=w=>B("Endurance",w,"endurance"), M=w=>B("Mixte",w,"mixte"), D=()=>B("Semaine légère",1,"deload");
 const CYCLES = {
-  force: [
-    {name:"Force",           weeks:3, rot:"force"},
-    {name:"Mixte",           weeks:2, rot:"mixte"},
-    {name:"Semaine légère",  weeks:1, rot:"deload"}
-  ],
-  endurance: [
-    {name:"Endurance",       weeks:3, rot:"endurance"},
-    {name:"Mixte",           weeks:2, rot:"mixte"},
-    {name:"Semaine légère",  weeks:1, rot:"deload"}
-  ],
-  mixte: [
-    {name:"Force",           weeks:2, rot:"force"},
-    {name:"Endurance",       weeks:2, rot:"endurance"},
-    {name:"Mixte",           weeks:1, rot:"mixte"},
-    {name:"Semaine légère",  weeks:1, rot:"deload"}
-  ]
+  force: {
+    6:  [F(3), M(2), D()],
+    8:  [F(3), D(), F(2), M(1), D()],
+    12: [F(3), D(), F(3), D(), M(3), D()],
+    16: [F(3), D(), F(3), D(), F(3), D(), M(3), D()]
+  },
+  endurance: {
+    6:  [E(3), M(2), D()],
+    8:  [E(3), D(), E(2), M(1), D()],
+    12: [E(3), D(), E(3), D(), M(3), D()],
+    16: [E(3), D(), E(3), D(), E(3), D(), M(3), D()]
+  },
+  mixte: {
+    6:  [F(2), E(2), M(1), D()],
+    8:  [F(3), D(), E(3), D()],
+    12: [F(3), D(), E(3), D(), M(3), D()],
+    16: [F(3), D(), E(3), D(), F(3), D(), M(3), D()]
+  }
 };
+function cycleBlocks(goal, weeks){ const g = CYCLES[goal] || CYCLES.mixte; return g[weeks] || g[6]; }
 function mondayOf(d){ const x=new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate()-((x.getDay()+6)%7)); return x; }
 function cycleInfo(){
   if(!plan || !plan.cycleStart) return null;
-  const blocks = CYCLES[plan.goal] || CYCLES.mixte;
+  const blocks = cycleBlocks(plan.goal, plan.cycleWeeks || 6);
   const total = blocks.reduce((a,b)=>a+b.weeks,0);
   const w = Math.floor((mondayOf(new Date()) - mondayOf(new Date(plan.cycleStart)))/(7*864e5));
   const week = ((w % total)+total)%total; // boucle
@@ -498,17 +507,28 @@ function pickNext(list){
   return avail[0];
 }
 function todayRec(){
-  if(!plan) return { kind:"setup" };
   const now = new Date(), dow = now.getDay();
   const submax = programs.find(p=>p.id==="submax");
   if(sessions.some(s=>dayKey(s.dateISO)===dayKey(now))) return { kind:"done", alt:submax };
-  if(!plan.days.includes(dow)) return { kind:"rest", alt:submax };
   const last = sessions[0];
   const hrs = last ? (now - new Date(last.dateISO))/36e5 : Infinity;
   if(last && last.rpe>=9 && hrs<40){
     return { kind:"fatigue", prog:submax,
       reason:`Ta dernière séance (${last.programName}) était très dure — RPE ${last.rpe} il y a moins de 48 h. Les doigts progressent pendant le repos : aujourd'hui, du sous-maximal léger, pas plus.` };
   }
+  if(!plan){
+    const prog = pickNext(ROTATIONS.mixte);
+    const sug = loadSuggestion(prog);
+    const rot = lastDoneAt(prog.id)
+      ? `« ${prog.name} » est le programme que tu n'as pas fait depuis le plus longtemps.`
+      : `« ${prog.name} » est un bon point de départ.`;
+    let sugTxt = "";
+    if(sug && sug.delta>0) sugTxt = ` Dernière fois : ${sug.prev.loadKg>0?"+":""}${sug.prev.loadKg} kg à RPE ${sug.prev.rpe} → on monte à ${sug.kg>0?"+":""}${sug.kg} kg.`;
+    else if(sug && sug.delta<0) sugTxt = ` RPE ${sug.prev.rpe} la dernière fois : on redescend à ${sug.kg>0?"+":""}${sug.kg} kg pour consolider.`;
+    return { kind:"train", prog, sug, noplan:true,
+      reason:`Suggestion du jour. ${rot}${sugTxt} Touche l'icône réglages pour définir tes jours, ton objectif et un cycle sur 6 à 16 semaines — les propositions seront alors planifiées.` };
+  }
+  if(!plan.days.includes(dow)) return { kind:"rest", alt:submax };
   const cyc = cycleInfo();
   if(cyc && cyc.rot==="deload"){
     return { kind:"train", prog:submax, cyc, deload:true,
@@ -530,11 +550,6 @@ function todayRec(){
 }
 function recCard(r){
   const gear = `<button class="icon-btn" id="recEdit" aria-label="Modifier le calendrier" style="width:34px;height:34px"><svg viewBox="0 0 24 24"><path d="M4 8h10M18 8h2M4 16h2M10 16h10"/><circle cx="16" cy="8" r="2.5"/><circle cx="7" cy="16" r="2.5"/></svg></button>`;
-  if(r.kind==="setup") return `<div class="card">
-    <div class="rec-head"><div class="rec-badge amber">À configurer</div></div>
-    <div class="rec-title">Séance du jour</div>
-    <p class="rec-txt">Indique tes jours d'entraînement et ton objectif : chaque jour, je te proposerai la bonne séance en fonction de ton historique.</p>
-    <button class="btn btn-primary btn-block" id="recSetup">Configurer mon calendrier</button></div>`;
   if(r.kind==="done") return `<div class="card">
     <div class="rec-head"><div class="rec-badge cool">✓ Fait</div>${gear}</div>
     <div class="rec-title">C'est fait pour aujourd'hui</div>
@@ -550,6 +565,7 @@ function recCard(r){
   if(r.deload) badge = `<div class="rec-badge amber">Sem. ${r.cyc.week+1}/${r.cyc.total} · Décharge</div>`;
   else if(r.kind==="fatigue") badge = `<div class="rec-badge amber">Récupération</div>`;
   else if(r.cyc) badge = `<div class="rec-badge ${p.color==="hot"?"hot":p.color==="amber"?"amber":"cool"}">Sem. ${r.cyc.week+1}/${r.cyc.total} · ${esc(r.cyc.blockName)}</div>`;
+  else if(r.noplan) badge = `<div class="rec-badge ${p.color==="hot"?"hot":p.color==="amber"?"amber":"cool"}">Suggestion du jour</div>`;
   else badge = `<div class="rec-badge ${p.color==="hot"?"hot":p.color==="amber"?"amber":"cool"}">Séance du jour</div>`;
   const sugTag = r.sug ? `<span class="tag">Lest conseillé <b>${r.sug.kg>0?"+":""}${r.sug.kg}</b>kg</span>` : "";
   return `<div class="card prog ${p.color}">
@@ -573,7 +589,6 @@ function recCard(r){
 function bindRec(r){
   const q=id=>document.getElementById(id);
   const ed=q("recEdit"); if(ed) ed.onclick=openPlanSheet;
-  const su=q("recSetup"); if(su) su.onclick=openPlanSheet;
   const al=q("recAlt"); if(al) al.onclick=()=>{ const p=programs.find(x=>x.id==="submax"); if(p) startSession(p); };
   const wa=q("recWarm"); if(wa) wa.onclick=()=>{ const p=programs.find(x=>x.id==="echauffement"); if(p) startSession(p); };
   const st=q("recStart"); if(st&&r.prog) st.onclick=()=>{
@@ -582,7 +597,7 @@ function bindRec(r){
   };
 }
 function openPlanSheet(){
-  const cur = plan ? {goal:plan.goal, days:[...plan.days], cycle:!!plan.cycleStart} : {goal:"mixte", days:[2,4,6], cycle:false};
+  const cur = plan ? {goal:plan.goal, days:[...plan.days], cycle:!!plan.cycleStart, weeks:plan.cycleWeeks||6} : {goal:"mixte", days:[2,4,6], cycle:false, weeks:6};
   const DAYS = [["L",1],["M",2],["M",3],["J",4],["V",5],["S",6],["D",0]];
   sheet(`
     <h3>Calendrier d'entraînement</h3>
@@ -594,8 +609,13 @@ function openPlanSheet(){
       ${DAYS.map(([l,d])=>`<button data-d="${d}" class="${cur.days.includes(d)?"on":""}">${l}</button>`).join("")}
     </div></div>
     <div class="field"><label>Planification</label>
-      <button class="cyctoggle ${cur.cycle?"on":""}" id="pCyc"><span id="pCycLbl"></span><span class="sw"></span></button>
-      <div class="cycrows" id="pCycRows" style="display:${cur.cycle?"flex":"none"}"></div>
+      <button class="cyctoggle ${cur.cycle?"on":""}" id="pCyc"><span>Cycle par blocs</span><span class="sw"></span></button>
+      <div id="pWeeksWrap" style="display:${cur.cycle?"block":"none"};margin-top:10px">
+        <div class="goalseg" id="pWeeks">
+          ${[6,8,12,16].map(w=>`<button data-w="${w}" class="${w===cur.weeks?"on":""}">${w} sem</button>`).join("")}
+        </div>
+        <div class="cycrows" id="pCycRows"></div>
+      </div>
     </div>
     <p class="hint" style="text-align:left;margin:0 0 16px">2 à 3 jours de poutre par semaine suffisent largement — les doigts progressent au repos. Les autres jours, le sous-max léger reste possible.</p>
     <div class="row2">
@@ -603,28 +623,29 @@ function openPlanSheet(){
       <button class="btn btn-primary" id="pSave">Enregistrer</button>
     </div>
   `);
-  function cycBlocks(){ return CYCLES[cur.goal] || CYCLES.mixte; }
   function renderCyc(){
-    const blocks = cycBlocks(), total = blocks.reduce((a,b)=>a+b.weeks,0);
-    $("#pCycLbl").textContent = `Cycle par blocs · ${total} semaines`;
-    // semaine courante si le cycle est déjà actif avec le même objectif
+    const blocks = cycleBlocks(cur.goal, cur.weeks);
+    // semaine courante si le cycle actif a le même objectif et la même durée
     let curWeek = -1;
-    if(plan && plan.cycleStart && plan.goal===cur.goal && cur.cycle){
+    if(plan && plan.cycleStart && plan.goal===cur.goal && (plan.cycleWeeks||6)===cur.weeks && cur.cycle){
       const info = cycleInfo(); if(info) curWeek = info.week;
     }
     let acc=0;
     $("#pCycRows").innerHTML = blocks.map(b=>{
-      const from=acc+1, to=acc+b.weeks; 
+      const from=acc+1, to=acc+b.weeks;
       const isCur = curWeek>=acc && curWeek<acc+b.weeks;
       acc+=b.weeks;
       return `<div class="cycrow ${isCur?"cur":""}"><span>${b.name}${isCur?" — en cours":""}</span><span class="wk">sem ${from===to?from:from+"–"+to}</span></div>`;
     }).join("");
-    $("#pCycRows").style.display = cur.cycle ? "flex" : "none";
+    $("#pWeeksWrap").style.display = cur.cycle ? "block" : "none";
     $("#pCyc").classList.toggle("on", cur.cycle);
   }
   renderCyc();
   $("#pGoal").querySelectorAll("button").forEach(b=>b.onclick=()=>{
     $("#pGoal").querySelectorAll("button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); cur.goal=b.dataset.v; renderCyc();
+  });
+  $("#pWeeks").querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    $("#pWeeks").querySelectorAll("button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); cur.weeks=+b.dataset.w; renderCyc();
   });
   $("#pDays").querySelectorAll("button").forEach(b=>b.onclick=()=>{
     const d=+b.dataset.d;
@@ -637,11 +658,12 @@ function openPlanSheet(){
     if(!cur.days.length){ toast("Choisis au moins un jour"); return; }
     let cycleStart = null;
     if(cur.cycle){
-      // conserve la position dans le cycle si l'objectif n'a pas changé, sinon repart de la semaine en cours
-      cycleStart = (plan && plan.cycleStart && plan.goal===cur.goal) ? plan.cycleStart : mondayOf(new Date()).toISOString();
+      // conserve la position si objectif ET durée inchangés, sinon repart de la semaine en cours
+      const same = plan && plan.cycleStart && plan.goal===cur.goal && (plan.cycleWeeks||6)===cur.weeks;
+      cycleStart = same ? plan.cycleStart : mondayOf(new Date()).toISOString();
     }
-    plan={goal:cur.goal, days:cur.days.sort((a,b)=>a-b), cycleStart}; savePlan(); closeSheet(); render();
-    toast(cur.cycle ? "Cycle par blocs activé" : "Calendrier enregistré");
+    plan={goal:cur.goal, days:cur.days.sort((a,b)=>a-b), cycleStart, cycleWeeks:cur.weeks}; savePlan(); closeSheet(); render();
+    toast(cur.cycle ? `Cycle ${cur.weeks} semaines activé` : "Calendrier enregistré");
   };
 }
 
@@ -654,7 +676,7 @@ function renderTrain(){
   const suggested = programs.slice(0,3);
   view.innerHTML = `
     <div class="topbar">
-      <div class="brand">${GLYPH}<div><div class="eyebrow">Poutre</div><h1>Prêt à tirer ?</h1></div></div>
+      <div class="brand">${GLYPH}<div><div class="eyebrow">Poutre <span class="ver">${APP_VERSION}</span></div><h1>Prêt à tirer ?</h1></div></div>
     </div>
     <div id="installbar" class="installbar">
       <div class="txt"><b>Installe l'app</b><br>Ajoute-la à ton écran d'accueil pour un accès plein écran, hors-ligne.</div>
@@ -722,7 +744,7 @@ function bindCard(p){
 /* ---------- Programmes ---------- */
 function renderPrograms(){
   view.innerHTML = `
-    <div class="topbar"><div><div class="eyebrow">Bibliothèque</div><h1>Programmes</h1></div>
+    <div class="topbar"><div><div class="eyebrow">Bibliothèque <span class="ver">${APP_VERSION}</span></div><h1>Programmes</h1></div>
       <button class="icon-btn" id="addProg" aria-label="Nouveau"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
     </div>
     <button class="btn btn-ghost btn-block" id="newBtn" style="margin-bottom:6px">+ Créer un programme</button>
@@ -767,7 +789,7 @@ function renderProgress(){
   const totalHang=sessions.reduce((a,x)=>a+(x.hangTimeSec||0),0);
   const streak=computeStreak();
   view.innerHTML = `
-    <div class="topbar"><div><div class="eyebrow">Suivi</div><h1>Progrès</h1></div></div>
+    <div class="topbar"><div><div class="eyebrow">Suivi <span class="ver">${APP_VERSION}</span></div><h1>Progrès</h1></div></div>
     <div class="chips" style="margin-bottom:6px">
       <div class="chip cool"><div class="n">${streak}</div><div class="l">Jours de suite</div></div>
       <div class="chip"><div class="n">${total}</div><div class="l">Séances</div></div>
