@@ -303,7 +303,7 @@ canvas{width:100%;display:block}
    avec repli mémoire (fonctionne aussi en aperçu sandbox).
    ============================================================ */
 
-const APP_VERSION = "v8"; // incrémentée à chaque mise à jour — doit correspondre au cache du service worker
+const APP_VERSION = "v9"; // incrémentée à chaque mise à jour — doit correspondre au cache du service worker
 
 /* ---------- Persistance ---------- */
 const store = (() => {
@@ -317,59 +317,141 @@ const store = (() => {
 })();
 
 /* ---------- Vocabulaire ---------- */
-const GRIPS = ["Bac / ouvert","Réglette tendue","Réglette semi-arquée","Arqué complet","Pince","Trois doigts","Bidoigt"];
+const GRIPS = ["Bac / ouvert","Réglette tendue","Réglette semi-arquée","Arqué complet","Pince","Trois doigts","Bidoigt","Mono-doigt","Corps entier"];
 
 /* ---------- Programmes intégrés ---------- */
 const PRESETS = [
-  { id:"echauffement", name:"Échauffement", type:"Préparation", color:"cool", grip:"Bac / ouvert", edgeMm:35, addedKg:0,
+  /* ===== POUTRE / HANGBOARD ===== */
+  { id:"echauffement", name:"Échauffement", type:"Préparation", cat:"poutre", color:"cool", grip:"Bac / ouvert", edgeMm:35, addedKg:0,
     prepSec:10, hangSec:10, restRepSec:20, reps:6, restSetSec:0, sets:1, builtin:true,
-    desc:"Monte les doigts en température. Commence léger sur gros bac, augmente doucement l’intensité à chaque suspension." },
-  { id:"maxhangs", name:"Force max — Max hangs", type:"Force maximale", color:"hot", grip:"Réglette semi-arquée", edgeMm:20, addedKg:0,
+    desc:"Monte les doigts en température. Commence léger sur gros bac, augmente doucement l'intensité à chaque suspension.",
+    technique:"Commence pieds au sol pour doser la charge, sur le bac. Épaules actives (omoplates tirées vers le bas), coudes très légèrement déverrouillés. Augmente la charge à chaque rep, jamais d'à-coup.",
+    gains:"Monte tendons et poulies en température et active le système nerveux. C'est l'assurance-blessure de toute la séance : ne le saute jamais." },
+  { id:"maxhangs", name:"Force max — Max hangs", type:"Force maximale", cat:"poutre", color:"hot", grip:"Réglette semi-arquée", edgeMm:20, addedKg:0,
     prepSec:15, hangSec:10, restRepSec:0, reps:1, restSetSec:180, sets:5, builtin:true,
-    desc:"5 suspensions quasi-maximales de 10 s, 3 min de repos. Ajoute du lest pour rester à ~85–90 % de l’effort max (dernière seconde très dure)." },
-  { id:"rep73", name:"Répéteurs 7:3", type:"Force-endurance", color:"cool", grip:"Réglette semi-arquée", edgeMm:20, addedKg:0,
+    desc:"5 suspensions quasi-maximales de 10 s, 3 min de repos. Ajoute du lest pour rester à ~85–90 % de l'effort max (dernière seconde très dure).",
+    technique:"Monte en charge progressivement sur 1–2 s, corps gainé et parfaitement immobile, bras tendus. Lâche immédiatement si la prise commence à s'ouvrir : jamais d'échec réel sur les doigts.",
+    gains:"Force maximale des doigts avec le meilleur ratio gain/fatigue connu. Transfert direct sur les réglettes en voie et les mouvements durs en bloc." },
+  { id:"rep73", name:"Répéteurs 7:3", type:"Force-endurance", cat:"poutre", color:"cool", grip:"Réglette semi-arquée", edgeMm:20, addedKg:0,
     prepSec:15, hangSec:7, restRepSec:3, reps:6, restSetSec:180, sets:6, builtin:true,
-    desc:"Le protocole classique : 7 s suspendu / 3 s repos, ×6 = une série, 6 séries. Vise une intensité tenable jusqu’à la dernière rep." },
-  { id:"rep105", name:"Répéteurs 10:5", type:"Force-endurance", color:"cool", grip:"Réglette semi-arquée", edgeMm:20, addedKg:0,
+    desc:"Le protocole classique : 7 s suspendu / 3 s repos, ×6 = une série, 6 séries. Vise une intensité tenable jusqu'à la dernière rep.",
+    technique:"Reprends exactement la même prise à chaque rep, remontée propre en 3 s de repos. Calibre l'intensité pour finir la dernière rep de la dernière série — brûlure oui, échec non.",
+    gains:"Force-endurance des avant-bras : la capacité à enchaîner des mouvements durs sans exploser. Le pilier de la résistance en voie." },
+  { id:"rep105", name:"Répéteurs 10:5", type:"Force-endurance", cat:"poutre", color:"cool", grip:"Réglette semi-arquée", edgeMm:20, addedKg:0,
     prepSec:15, hangSec:10, restRepSec:5, reps:6, restSetSec:180, sets:3, builtin:true,
-    desc:"Suspensions plus longues 10 s / 5 s. Un peu plus dur que le 7:3, bon pour la continuité de force." },
-  { id:"density", name:"Suspensions denses", type:"Volume", color:"amber", grip:"Réglette tendue", edgeMm:22, addedKg:0,
+    desc:"Suspensions plus longues 10 s / 5 s. Un peu plus dur que le 7:3, bon pour la continuité de force.",
+    technique:"Même consigne que le 7:3 mais le temps sous tension plus long exige une respiration continue : ne bloque jamais ta respiration pendant la suspension.",
+    gains:"Continuité de force sous fatigue — proche des sections en voie où les prises se tiennent 8–12 s chacune." },
+  { id:"density", name:"Suspensions denses", type:"Volume", cat:"poutre", color:"amber", grip:"Réglette tendue", edgeMm:22, addedKg:0,
     prepSec:12, hangSec:20, restRepSec:120, reps:4, restSetSec:0, sets:1, builtin:true,
-    desc:"4 suspensions de 20 s à charge modérée, 2 min de repos. Développe la robustesse des tendons sans intensité maximale." },
-  { id:"minedge", name:"Réglette minimale", type:"Force maximale", color:"hot", grip:"Réglette semi-arquée", edgeMm:10, addedKg:0,
+    desc:"4 suspensions de 20 s à charge modérée, 2 min de repos. Développe la robustesse des tendons sans intensité maximale.",
+    technique:"Charge modérée (~60–70 % de ton max), position tendue stricte, épaules stables. Aucune rep ne doit approcher l'échec.",
+    gains:"Volume tendineux : rigidité et robustesse des tissus conjonctifs sans stress maximal. Idéal en base de saison ou en reprise." },
+  { id:"minedge", name:"Réglette minimale", type:"Force maximale", cat:"poutre", color:"hot", grip:"Réglette semi-arquée", edgeMm:10, addedKg:0,
     prepSec:15, hangSec:10, restRepSec:0, reps:1, restSetSec:150, sets:5, builtin:true,
-    desc:"5 suspensions de 10 s sur la plus petite réglette que tu tiens au poids du corps. Réduis la profondeur plutôt que d’ajouter du lest." },
-  { id:"endurance", name:"Endurance longue", type:"Endurance", color:"cool", grip:"Bac / ouvert", edgeMm:30, addedKg:0,
+    desc:"5 suspensions de 10 s sur la plus petite réglette que tu tiens au poids du corps. Réduis la profondeur plutôt que d'ajouter du lest.",
+    technique:"Semi-arqué strict, phalanges alignées, pas de réajustement en cours de suspension. Si tu tiens 10 s facilement, descends d'une taille de réglette plutôt que d'ajouter du poids.",
+    gains:"Recrutement spécifique sur micro-prises et confiance sur les petites réglettes — très proche des conditions réelles du rocher." },
+  { id:"endurance", name:"Endurance longue", type:"Endurance", cat:"poutre", color:"cool", grip:"Bac / ouvert", edgeMm:30, addedKg:0,
     prepSec:12, hangSec:60, restRepSec:0, reps:1, restSetSec:120, sets:3, builtin:true,
-    desc:"3 suspensions longues de 60 s sur prise confortable. Travaille la capacité et la tolérance à l’effort prolongé." },
-  { id:"submax", name:"Sous-max quotidien", type:"Préparation", color:"cool", grip:"Réglette tendue", edgeMm:20, addedKg:-15,
+    desc:"3 suspensions longues de 60 s sur prise confortable. Travaille la capacité et la tolérance à l'effort prolongé.",
+    technique:"Relâche tout ce qui ne sert pas : visage, jambes, épaules hautes. Respiration lente et profonde — c'est un exercice de calme autant que de doigts.",
+    gains:"Capacité aérobie locale de l'avant-bras : mieux récupérer sur les prises et repousser le moment où ça gonfle." },
+  { id:"submax", name:"Sous-max quotidien", type:"Préparation", cat:"poutre", color:"cool", grip:"Réglette tendue", edgeMm:20, addedKg:-15,
     prepSec:10, hangSec:10, restRepSec:50, reps:5, restSetSec:0, sets:1, builtin:true,
-    desc:"Suspensions faciles à ~40–60 % (allège avec un élastique ou les pieds au sol). Faisable tous les jours, même les jours de repos : conditionne les tendons sans fatiguer. Inspiré du protocole d’Emil Abrahamsson." },
-  { id:"force5", name:"Force courte 5 s", type:"Force maximale", color:"hot", grip:"Réglette semi-arquée", edgeMm:18, addedKg:0,
+    desc:"Suspensions faciles à ~40–60 % (allège avec un élastique ou les pieds au sol). Faisable tous les jours, même les jours de repos : conditionne les tendons sans fatiguer. Inspiré du protocole d'Emil Abrahamsson.",
+    technique:"La règle d'or : ça doit rester facile. Zéro douleur, zéro brûlure, zéro effort mental. Élastique sous les pieds ou pieds au sol pour alléger.",
+    gains:"Conditionnement tendineux par le flux sanguin et la charge légère fréquente. Redoutablement efficace contre les doigts fragiles ou douloureux." },
+  { id:"force5", name:"Force courte 5 s", type:"Force maximale", cat:"poutre", color:"hot", grip:"Réglette semi-arquée", edgeMm:18, addedKg:0,
     prepSec:15, hangSec:5, restRepSec:0, reps:1, restSetSec:60, sets:6, builtin:true,
-    desc:"6 suspensions très intenses de 5 s, 1 min de repos. Recrutement maximal avec peu de fatigue métabolique — ajoute du lest ou réduis la réglette pour que 5 s soit vraiment dur." },
-  { id:"rep1515", name:"Répéteurs longs 15:15", type:"Force-endurance", color:"cool", grip:"Réglette tendue", edgeMm:22, addedKg:0,
+    desc:"6 suspensions très intenses de 5 s, 1 min de repos. Recrutement maximal avec peu de fatigue métabolique — ajoute du lest ou réduis la réglette pour que 5 s soit vraiment dur.",
+    technique:"Engage les épaules et gaine AVANT de charger les doigts. 5 s à fond puis arrêt net — la qualité de chaque seconde compte plus que la durée.",
+    gains:"Recrutement nerveux maximal : de la force pure avec une récupération rapide. Parfait avant une phase de projets durs." },
+  { id:"rep1515", name:"Répéteurs longs 15:15", type:"Force-endurance", cat:"poutre", color:"cool", grip:"Réglette tendue", edgeMm:22, addedKg:0,
     prepSec:15, hangSec:15, restRepSec:15, reps:5, restSetSec:180, sets:3, builtin:true,
-    desc:"15 s suspendu / 15 s repos, ×5 par série. Travaille la continuité sur voies longues : cherche une intensité tenable, brûlure gérable jusqu’au bout." },
-  { id:"eco3030", name:"Éco 30:30", type:"Endurance", color:"amber", grip:"Bac / ouvert", edgeMm:32, addedKg:0,
+    desc:"15 s suspendu / 15 s repos, ×5 par série. Travaille la continuité sur voies longues : cherche une intensité tenable, brûlure gérable jusqu'au bout.",
+    technique:"Le repos égal au travail permet une récupération partielle : apprends à en profiter (secoue les bras, respire). Intensité modérée obligatoire.",
+    gains:"Gestion de la brûlure et récupération active — le rythme typique des grandes voies et des voies à sections." },
+  { id:"eco3030", name:"Éco 30:30", type:"Endurance", cat:"poutre", color:"amber", grip:"Bac / ouvert", edgeMm:32, addedKg:0,
     prepSec:12, hangSec:30, restRepSec:30, reps:6, restSetSec:0, sets:1, builtin:true,
-    desc:"6 suspensions de 30 s espacées de 30 s sur grosse prise. Endurance intermittente : le repos incomplet apprend à récupérer sous fatigue. Intensité faible obligatoire." },
-  { id:"bidoigt", name:"Bidoigt progressif", type:"Force maximale", color:"hot", grip:"Bidoigt", edgeMm:25, addedKg:0,
+    desc:"6 suspensions de 30 s espacées de 30 s sur grosse prise. Endurance intermittente : le repos incomplet apprend à récupérer sous fatigue. Intensité faible obligatoire.",
+    technique:"Prise très confortable, charge faible. L'objectif n'est pas de souffrir mais de maintenir un effort régulier avec une récupération incomplète.",
+    gains:"Base aérobie de l'avant-bras et capacité à récupérer en grimpant — le socle sur lequel tout le reste se construit." },
+  { id:"bidoigt", name:"Bidoigt progressif", type:"Force maximale", cat:"poutre", color:"hot", grip:"Bidoigt", edgeMm:25, addedKg:0,
     prepSec:15, hangSec:8, restRepSec:30, reps:3, restSetSec:150, sets:3, builtin:true,
-    desc:"3×3 suspensions de 8 s en bidoigt (majeur-annulaire puis index-majeur). Monte très progressivement : commence allégé si besoin, les poulies n’aiment pas la précipitation." },
-  { id:"pince", name:"Pince — blocs", type:"Force maximale", color:"amber", grip:"Pince", edgeMm:40, addedKg:0,
+    desc:"3×3 suspensions de 8 s en bidoigt (majeur-annulaire puis index-majeur). Monte très progressivement : commence allégé si besoin, les poulies n'aiment pas la précipitation.",
+    technique:"Position tendue ou semi-tendue uniquement — jamais d'arqué complet en bidoigt. Allège avec un élastique les premières semaines. Stoppe à la moindre gêne dans une poulie.",
+    gains:"Force spécifique des paires de doigts pour les trous et bidoigts du rocher. Un travail à dose homéopathique mais au transfert énorme." },
+  { id:"pince", name:"Pince — blocs", type:"Force maximale", cat:"poutre", color:"amber", grip:"Pince", edgeMm:40, addedKg:0,
     prepSec:15, hangSec:8, restRepSec:0, reps:1, restSetSec:120, sets:4, builtin:true,
-    desc:"4 suspensions de 8 s en pince sur blocs larges. Le pouce fait le travail — une prise souvent négligée sur poutre, décisive en dévers et sur arêtes." },
+    desc:"4 suspensions de 8 s en pince sur blocs larges. Le pouce fait le travail — une prise souvent négligée sur poutre, décisive en dévers et sur arêtes.",
+    technique:"Serre activement le pouce dès la mise en charge, poignet neutre. C'est le pouce qui travaille : si tu sens surtout les doigts, la prise est trop fine.",
+    gains:"Force de pince (pouce et éminence thénar), décisive sur les arêtes, les dévers et le bloc moderne." },
+
+  /* ===== TRIANGLE YY VERTICAL ===== */
+  { id:"tri-susp", name:"Triangle — suspensions max", type:"Force maximale", cat:"triangle", color:"hot", grip:"Réglette semi-arquée", edgeMm:20, addedKg:0,
+    prepSec:15, hangSec:10, restRepSec:0, reps:1, restSetSec:180, sets:5, builtin:true,
+    desc:"Triangles suspendus à une barre ou une branche par leurs sangles. 5 suspensions de 10 s sur la réglette 20 mm (tourne vers 15 mm pour durcir).",
+    technique:"Les triangles bougent : engage les épaules et gaine tout le corps pour stabiliser AVANT de charger les doigts. Sangles de même longueur, mains symétriques. Le système 360° te laisse changer de prise entre les séries.",
+    gains:"Même force maximale qu'une poutre, plus le travail des stabilisateurs d'épaule et du gainage dû à l'instabilité des sangles — très proche de la grimpe réelle." },
+  { id:"tri-nohang", name:"Triangle — soulevés lestés", type:"Force maximale", cat:"triangle", color:"hot", grip:"Réglette semi-arquée", edgeMm:20, addedKg:20, effortLabel:"Tirage",
+    prepSec:15, hangSec:7, restRepSec:0, reps:1, restSetSec:60, sets:6, builtin:true,
+    desc:"Sans se suspendre : relie la sangle du triangle à une charge posée au sol (haltère, kettlebell, sac lesté) et soulève-la d'un bras, dos droit. 7 s de tenue, 6 tirages par main.",
+    technique:"Position de soulevé de terre : dos plat, charge près du corps, monte la charge de quelques centimètres seulement et tiens 7 s. La charge se règle au kilo près — c'est tout l'intérêt. Alterne main gauche / main droite à chaque tirage.",
+    gains:"Force de doigts isolée, dosable précisément et sans stress d'épaule : parfait pour progresser finement, travailler un bras faible, ou continuer à charger quand la suspension complète est trop intense." },
+  { id:"tri-foot", name:"Triangle — traction contre le pied", type:"Force maximale", cat:"triangle", color:"amber", grip:"Réglette semi-arquée", edgeMm:20, addedKg:0, effortLabel:"Tirage",
+    prepSec:12, hangSec:7, restRepSec:30, reps:3, restSetSec:120, sets:3, builtin:true,
+    desc:"Debout, la sangle passée sous le pied : tire le triangle vers le haut, bras tendu, contre ta propre jambe. Effort isométrique à ~80 % de ton max, sans aucun matériel d'ancrage.",
+    technique:"Sangle bien calée sous la voûte plantaire, dos droit, bras tendu le long du corps. Monte l'effort progressivement sur 2 s jusqu'à ~80 % puis tiens. C'est TOI qui doses l'intensité — reste toujours sous le maximum.",
+    gains:"Travail isométrique maximal des doigts partout, sans barre ni point d'ancrage : au bureau, en voyage, au pied des voies. Idéal aussi en échauffement avant de grimper dehors." },
+  { id:"tri-elastic", name:"Triangle — élastique léger", type:"Préparation", cat:"triangle", color:"cool", grip:"Bac / ouvert", edgeMm:25, addedKg:0, effortLabel:"Tirage",
+    prepSec:10, hangSec:10, restRepSec:20, reps:8, restSetSec:0, sets:1, builtin:true,
+    desc:"Triangle relié à un élastique ancré bas (pied de meuble, arbre) : tirages légers et contrôlés de 10 s. La version mobile du sous-max quotidien.",
+    technique:"Choisis un élastique qui rend l'effort FACILE (~40–50 %). Tire lentement, tiens 10 s, relâche lentement. Varie les prises grâce au 360° : bac, 25, 20 mm. Zéro douleur tolérée.",
+    gains:"Flux sanguin et conditionnement des tendons sans fatigue — récupération active les jours de repos, échauffement des doigts avant une session, rééducation douce après une gêne." },
+  { id:"tri-rep", name:"Triangle — répéteurs 7:3", type:"Force-endurance", cat:"triangle", color:"cool", grip:"Réglette semi-arquée", edgeMm:20, addedKg:0,
+    prepSec:15, hangSec:7, restRepSec:3, reps:6, restSetSec:180, sets:4, builtin:true,
+    desc:"Le protocole 7:3 suspendu aux triangles. L'instabilité des sangles ajoute une couche de gainage au travail d'endurance de force.",
+    technique:"Pendant les 3 s de repos, garde les mains sur les prises pour éviter le ballant des triangles. Corps gainé en permanence — si tu oscilles, c'est le gainage qui lâche, pas les doigts.",
+    gains:"Force-endurance des avant-bras + endurance de gainage et de stabilité d'épaule : la combinaison exacte qu'exige une voie déversante." },
+
+  /* ===== GAINAGE ===== */
+  { id:"core-sol", name:"Gainage au sol — 3 faces", type:"Gainage", cat:"gainage", color:"amber", grip:"Corps entier", edgeMm:0, addedKg:0, effortLabel:"Gainage",
+    prepSec:10, hangSec:40, restRepSec:20, reps:3, restSetSec:60, sets:3, builtin:true,
+    desc:"Circuit planche : chaque série = planche face (rep 1), côté gauche (rep 2), côté droit (rep 3). 40 s d'effort, 20 s de transition.",
+    technique:"Planche face : coudes sous les épaules, bassin rétroversé, fessiers serrés — le dos ne creuse JAMAIS. Latérale : corps aligné de la tête aux pieds, hanche haute. Respire normalement pendant tout l'effort.",
+    gains:"Le gainage transmet la force des pieds aux mains : c'est lui qui garde les pieds sur les prises en dévers et qui tient les positions loin du corps. Le maillon le plus rentable hors doigts." },
+  { id:"core-hollow", name:"Hollow body / Superman", type:"Gainage", cat:"gainage", color:"cool", grip:"Corps entier", edgeMm:0, addedKg:0, effortLabel:"Gainage",
+    prepSec:10, hangSec:30, restRepSec:15, reps:4, restSetSec:60, sets:2, builtin:true,
+    desc:"Alterne à chaque rep : hollow body (dos au sol, lombaires plaquées, bras et jambes tendus décollés) puis superman (sur le ventre, extension complète). 30 s / 15 s.",
+    technique:"Hollow : les lombaires restent COLLÉES au sol — si elles décollent, plie les genoux pour réduire le levier. Superman : décolle bras et cuisses ensemble, regard vers le sol, nuque longue.",
+    gains:"La chaîne antérieure (hollow) est la position de base de tout mouvement dynamique en escalade ; la chaîne postérieure (superman) équilibre et protège le dos. Le duo complet." },
+  { id:"core-susp", name:"Gainage suspendu — relevés", type:"Gainage", cat:"gainage", color:"amber", grip:"Bac / ouvert", edgeMm:0, addedKg:0, effortLabel:"Effort",
+    prepSec:12, hangSec:20, restRepSec:40, reps:4, restSetSec:90, sets:2, builtin:true,
+    desc:"Suspendu à la barre ou aux triangles (bacs) : enchaîne un maximum de relevés de genoux propres pendant 20 s, puis 40 s de repos.",
+    technique:"Épaules actives, zéro balancier : monte les genoux vers la poitrine par les abdos, redescends contrôlé. Si tu te balances, ralentis. Version dure : jambes tendues jusqu'à l'horizontale.",
+    gains:"Gainage spécifique en suspension — exactement la tension qu'exigent les replacements de pieds en dévers et les toits. Bonus : endurance de préhension sur les bacs." },
+  { id:"core-lsit", name:"L-sit / Tuck lever", type:"Gainage", cat:"gainage", color:"hot", grip:"Bac / ouvert", edgeMm:0, addedKg:0, effortLabel:"Maintien",
+    prepSec:12, hangSec:8, restRepSec:45, reps:5, restSetSec:120, sets:2, builtin:true,
+    desc:"Suspendu, jambes tendues à l'horizontale (L-sit) ou genoux groupés remontés vers la poitrine, bassin basculé (tuck lever). 5 maintiens de 8 s.",
+    technique:"Commence par le tuck (genoux pliés) : bascule le bassin, arrondis le bas du dos, épaules verrouillées. Le L-sit exige des ischio-jambiers souples — n'aie pas honte de plier légèrement.",
+    gains:"Gainage maximal + force des fléchisseurs de hanche et des épaules : la base des mouvements de compression, des talons hauts et du bloc physique." },
 ];
 
 /* ---------- État ---------- */
 let programs = store.get("programs", null);
 if(!programs){ programs = PRESETS.map(p=>({...p})); store.set("programs", programs); }
 else {
-  // ajoute les presets manquants (mise à jour de l'app) sans toucher aux programmes existants
-  let added=false;
-  PRESETS.forEach(pp=>{ if(!programs.some(x=>x.id===pp.id)){ programs.push({...pp}); added=true; } });
-  if(added) store.set("programs", programs);
+  // mise à jour de l'app : ajoute les presets manquants et complète les nouveaux champs
+  let changed=false;
+  PRESETS.forEach(pp=>{
+    const ex = programs.find(x=>x.id===pp.id);
+    if(!ex){ programs.push({...pp}); changed=true; return; }
+    for(const k of ["cat","technique","gains","effortLabel"]){
+      if(ex[k]===undefined && pp[k]!==undefined){ ex[k]=pp[k]; changed=true; }
+    }
+  });
+  if(changed) store.set("programs", programs);
 }
 let sessions = store.get("sessions", []);
 let tab = "train";
@@ -445,11 +527,12 @@ const GLYPH = `<img class="glyph" src="icon-192.png" alt="" width="34" height="3
 let plan = store.get("plan", null);
 function savePlan(){ store.set("plan", plan); }
 const ROTATIONS = {
-  force:      ["maxhangs","force5","minedge","pince"],
-  endurance:  ["rep73","rep1515","eco3030","endurance"],
-  mixte:      ["maxhangs","rep73","force5","rep1515","minedge","eco3030"],
-  deload:     ["submax"]
+  force:      ["maxhangs","force5","minedge","pince","tri-nohang","tri-susp"],
+  endurance:  ["rep73","rep1515","eco3030","endurance","tri-rep"],
+  mixte:      ["maxhangs","rep73","force5","rep1515","minedge","eco3030","tri-nohang","tri-rep"],
+  deload:     ["submax","tri-elastic"]
 };
+const GAINAGE_IDS = ["core-sol","core-hollow","core-susp","core-lsit"];
 const GOAL_TXT = { force:"objectif force", endurance:"objectif endurance", mixte:"cycle mixte force / endurance" };
 
 /* ---- Cycle par blocs (6 / 8 / 12 / 16 semaines) ---- */
@@ -576,13 +659,14 @@ function recCard(r){
     <div class="prog-meta">
       <span class="tag"><b>${p.hangSec}</b>s${p.restRepSec?` / ${p.restRepSec}s`:""}</span>
       <span class="tag"><b>${p.reps}</b>×<b>${p.sets}</b></span>
-      <span class="tag"><b>${p.edgeMm}</b>mm</span>
+      ${p.edgeMm?`<span class="tag"><b>${p.edgeMm}</b>mm</span>`:""}
       ${sugTag}
       <span class="tag">≈<b>${Math.round(estDuration(p)/60)}</b>min</span>
     </div>
     <div class="prog-actions">
       <button class="btn btn-ghost btn-sm" id="recWarm">Échauffement</button>
       <button class="btn btn-primary btn-sm" id="recStart">Démarrer</button>
+      <button class="btn btn-ghost btn-sm" id="recCore">+ Gainage</button>
     </div>
   </div>`;
 }
@@ -595,6 +679,7 @@ function bindRec(r){
     const prog = r.sug ? {...r.prog, addedKg:r.sug.kg} : r.prog;
     startSession(prog);
   };
+  const co=q("recCore"); if(co) co.onclick=()=>{ const p=pickNext(GAINAGE_IDS); if(p) startSession(p); };
 }
 function openPlanSheet(){
   const cur = plan ? {goal:plan.goal, days:[...plan.days], cycle:!!plan.cycleStart, weeks:plan.cycleWeeks||6} : {goal:"mixte", days:[2,4,6], cycle:false, weeks:6};
@@ -711,7 +796,7 @@ function renderTrain(){
     <div class="chips" style="margin-top:12px">
       <div class="chip cool"><div class="n">${s}</div><div class="l">Jours de suite</div></div>
       <div class="chip"><div class="n">${total}</div><div class="l">Séances</div></div>
-      <div class="chip amber"><div class="n">${Math.round(totalHang/60)}</div><div class="l">Min suspendu</div></div>
+      <div class="chip amber"><div class="n">${Math.round(totalHang/60)}</div><div class="l">Min d'effort</div></div>
     </div>
     ${last ? `<h2>Dernière séance</h2>
       <div class="card" style="display:flex;align-items:center;gap:12px">
@@ -747,10 +832,10 @@ function progCard(p){
       <div><div class="prog-name">${esc(p.name)}</div><div class="prog-type">${esc(p.type)}</div></div>
     </div>
     <div class="prog-meta">
-      <span class="tag"><b>${p.hangSec}</b>s suspension</span>
+      <span class="tag"><b>${p.hangSec}</b>s ${p.effortLabel?p.effortLabel.toLowerCase():"suspension"}</span>
       ${p.reps>1?`<span class="tag"><b>${p.reps}</b>×</span>`:""}
       <span class="tag"><b>${p.sets}</b> ${p.sets>1?"séries":"série"}</span>
-      <span class="tag"><b>${p.edgeMm}</b>mm</span>
+      ${p.edgeMm?`<span class="tag"><b>${p.edgeMm}</b>mm</span>`:""}
       ${p.addedKg?`<span class="tag"><b>${p.addedKg>0?"+":""}${p.addedKg}</b>kg</span>`:""}
       <span class="tag">≈<b>${Math.round(estDuration(p)/60)}</b>min</span>
     </div>
@@ -774,11 +859,15 @@ function renderPrograms(){
       <button class="icon-btn" id="addProg" aria-label="Nouveau"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
     </div>
     <button class="btn btn-ghost btn-block" id="newBtn" style="margin-bottom:6px">+ Créer un programme</button>
-    ${programs.map(p=>fullCard(p)).join("")}
+    ${[["poutre","Poutre & hangboard"],["triangle","Triangle YY Vertical"],["gainage","Gainage"]].map(([cat,label])=>{
+      const list = programs.filter(p=>(p.cat||"poutre")===cat);
+      return list.length ? `<h2>${label}</h2>`+list.map(fullCard).join("") : "";
+    }).join("")}
   `;
   programs.forEach(p=>{
     const el=view.querySelector(`.prog[data-pid="${p.id}"]`); if(!el) return;
     el.querySelector(".start").onclick=()=>startSession(p);
+    el.querySelector(".pinfo").onclick=()=>openDetail(p);
     el.querySelector(".edit").onclick=()=>openBuilder(p);
     el.querySelector(".dup").onclick=()=>{ const c={...p,id:uid(),name:p.name+" (copie)",builtin:false}; programs.push(c); saveP(); render(); toast("Programme dupliqué"); };
     const del=el.querySelector(".del"); if(del) del.onclick=()=>{ if(confirm(`Supprimer « ${p.name} » ?`)){ programs=programs.filter(x=>x.id!==p.id); saveP(); render(); toast("Supprimé"); } };
@@ -794,7 +883,7 @@ function fullCard(p){
     <div class="prog-desc">${esc(p.desc||"")}</div>
     <div class="prog-meta">
       <span class="tag">${esc(p.grip)}</span>
-      <span class="tag"><b>${p.edgeMm}</b>mm</span>
+      ${p.edgeMm?`<span class="tag"><b>${p.edgeMm}</b>mm</span>`:""}
       <span class="tag"><b>${p.hangSec}</b>s${p.restRepSec?` / ${p.restRepSec}s`:""}</span>
       <span class="tag"><b>${p.reps}</b>×<b>${p.sets}</b></span>
       ${p.addedKg?`<span class="tag"><b>${p.addedKg>0?"+":""}${p.addedKg}</b>kg</span>`:""}
@@ -802,6 +891,7 @@ function fullCard(p){
     </div>
     <div class="prog-actions">
       <button class="btn btn-primary btn-sm start">Démarrer</button>
+      <button class="icon-btn pinfo" aria-label="Détails"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button>
       <button class="icon-btn edit" aria-label="Modifier"><svg viewBox="0 0 24 24"><path d="M4 20h4L18 10l-4-4L4 16zM14 6l4 4"/></svg></button>
       <button class="icon-btn dup" aria-label="Dupliquer"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg></button>
       ${p.builtin?"":`<button class="icon-btn del" aria-label="Supprimer"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg></button>`}
@@ -819,7 +909,7 @@ function renderProgress(){
     <div class="chips" style="margin-bottom:6px">
       <div class="chip cool"><div class="n">${streak}</div><div class="l">Jours de suite</div></div>
       <div class="chip"><div class="n">${total}</div><div class="l">Séances</div></div>
-      <div class="chip amber"><div class="n">${Math.round(totalHang/60)}</div><div class="l">Min suspendu</div></div>
+      <div class="chip amber"><div class="n">${Math.round(totalHang/60)}</div><div class="l">Min d'effort</div></div>
     </div>
     ${total===0 ? `
       <div class="empty">
@@ -921,10 +1011,12 @@ function openDetail(p){
   sheet(`
     <h3>${esc(p.name)}</h3>
     <div class="sub">${esc(p.type)}</div>
-    <p style="color:var(--muted);font-size:14px;margin-bottom:16px">${esc(p.desc||"")}</p>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:14px">${esc(p.desc||"")}</p>
+    ${p.technique?`<div style="margin-bottom:12px"><div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--cool-deep);font-weight:800;margin-bottom:5px">Technique</div><p style="color:var(--muted);font-size:13.5px">${esc(p.technique)}</p></div>`:""}
+    ${p.gains?`<div style="margin-bottom:14px"><div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--hot-deep);font-weight:800;margin-bottom:5px">Ce que ça développe</div><p style="color:var(--muted);font-size:13.5px">${esc(p.gains)}</p></div>`:""}
     <div class="prog-meta" style="padding:0;margin-bottom:18px">
       <span class="tag">${esc(p.grip)}</span>
-      <span class="tag">Réglette <b>${p.edgeMm}</b>mm</span>
+      ${p.edgeMm?`<span class="tag">Réglette <b>${p.edgeMm}</b>mm</span>`:""}
       <span class="tag">Prépa <b>${p.prepSec}</b>s</span>
       <span class="tag">Susp. <b>${p.hangSec}</b>s</span>
       ${p.restRepSec?`<span class="tag">Repos rep <b>${p.restRepSec}</b>s</span>`:""}
@@ -957,9 +1049,14 @@ function openBuilder(existing){
         ${[["cool","Turquoise"],["hot","Rouge"],["amber","Ambre"]].map(([v,l])=>`<option value="${v}" ${v===p.color?"selected":""}>${l}</option>`).join("")}
       </select></div></div>
     </div>
-    <div class="field"><label>Prise</label><div class="selectwrap"><select class="input" id="f_grip">
-      ${GRIPS.map(gname=>`<option ${gname===p.grip?"selected":""}>${gname}</option>`).join("")}
-    </select></div></div>
+    <div class="row2">
+      <div class="field"><label>Catégorie</label><div class="selectwrap"><select class="input" id="f_cat">
+        ${[["poutre","Poutre"],["triangle","Triangle"],["gainage","Gainage"]].map(([v,l])=>`<option value="${v}" ${v===(p.cat||"poutre")?"selected":""}>${l}</option>`).join("")}
+      </select></div></div>
+      <div class="field"><label>Prise</label><div class="selectwrap"><select class="input" id="f_grip">
+        ${GRIPS.map(gname=>`<option ${gname===p.grip?"selected":""}>${gname}</option>`).join("")}
+      </select></div></div>
+    </div>
     <div class="row2">
       ${stepper("f_edge","Réglette","mm",p.edgeMm,1,50,1)}
       ${stepper("f_kg","Lest","kg",p.addedKg,-60,80,1)}
@@ -977,6 +1074,8 @@ function openBuilder(existing){
       ${stepper("f_restset","Repos entre séries","s",p.restSetSec,0,600,15)}
     </div>
     <div class="field"><label>Description (optionnel)</label><textarea class="input" id="f_desc" placeholder="Conseils, cadence, intensité visée…">${esc(p.desc||"")}</textarea></div>
+    <div class="field"><label>Technique (optionnel)</label><textarea class="input" id="f_tech" placeholder="Consignes d'exécution…">${esc(p.technique||"")}</textarea></div>
+    <div class="field"><label>Ce que ça développe (optionnel)</label><textarea class="input" id="f_gains" placeholder="Bénéfices attendus…">${esc(p.gains||"")}</textarea></div>
     <div class="card" style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
       <div><div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700">Aperçu</div>
       <div class="mono" id="f_preview" style="font-weight:800;font-size:15px;margin-top:4px"></div></div>
@@ -992,7 +1091,8 @@ function openBuilder(existing){
       name:g("f_name").value.trim(), type:g("f_type").value, color:g("f_color").value, grip:g("f_grip").value,
       edgeMm:step.val.f_edge, addedKg:step.val.f_kg, prepSec:step.val.f_prep, hangSec:step.val.f_hang,
       reps:step.val.f_reps, restRepSec:step.val.f_restrep, sets:step.val.f_sets, restSetSec:step.val.f_restset,
-      desc:g("f_desc").value.trim(), builtin:false };
+      desc:g("f_desc").value.trim(), cat:g("f_cat").value,
+      technique:g("f_tech").value.trim(), gains:g("f_gains").value.trim(), builtin:false };
   }
   function updatePreview(){ const v=readVals(); g("f_preview").textContent=`${hangTime(v)}s suspendu · ≈${Math.round(estDuration(v)/60)} min`; }
   bindSteppers(updatePreview); updatePreview();
@@ -1195,18 +1295,18 @@ function paintSession(){
   const cur=SESS.phases[SESS.i];
   const sess=$("#session");
   sess.className="on sess-bg-"+cur.kind;
-  $("#sLabel").textContent=PHASE_TXT[cur.kind]||cur.label;
+  $("#sLabel").textContent = cur.kind==="hang" ? (SESS.p.effortLabel||PHASE_TXT.hang) : (PHASE_TXT[cur.kind]||cur.label);
   const sec=Math.max(0,Math.ceil(SESS.remain));
   $("#sCount").innerHTML=`${sec}<small>s</small>`;
   const p=SESS.p;
   let sub="";
   if(cur.kind==="hang"||cur.kind==="restRep") sub=`Rep ${cur.rep+1}/${p.reps} · Série ${cur.set+1}/${p.sets}`;
   else if(cur.kind==="restSet") sub=`Série ${cur.set+1} terminée · série ${cur.set+2}/${p.sets} à venir`;
-  else if(cur.kind==="prep") sub=`${p.grip} · ${p.edgeMm} mm${p.addedKg?` · ${p.addedKg>0?"+":""}${p.addedKg} kg`:""}`;
+  else if(cur.kind==="prep") sub=`${p.grip}${p.edgeMm?` · ${p.edgeMm} mm`:""}${p.addedKg?` · ${p.addedKg>0?"+":""}${p.addedKg} kg`:""}`;
   $("#sSub").textContent=sub;
   // prochaine phase
   const nx=SESS.phases[SESS.i+1];
-  $("#sNext").textContent = nx && nx.kind!=="done" ? "Ensuite : "+(PHASE_TXT[nx.kind]||"")+` ${nx.dur}s` : "";
+  $("#sNext").textContent = nx && nx.kind!=="done" ? "Ensuite : "+(nx.kind==="hang" ? (SESS.p.effortLabel||PHASE_TXT.hang) : (PHASE_TXT[nx.kind]||""))+` ${nx.dur}s` : "";
   updateLadder();
 }
 function bindSessionControls(){
@@ -1250,7 +1350,7 @@ function openLog(p, done, total){
     <div class="sub">${esc(p.name)} · ${done}/${total} reps réalisées</div>
     <div class="row2">
       ${stepper("l_kg","Lest utilisé","kg",p.addedKg,-60,80,1)}
-      ${stepper("l_edge","Réglette","mm",p.edgeMm,1,50,1)}
+      ${stepper("l_edge","Réglette","mm",p.edgeMm,0,50,1)}
     </div>
     <div class="field"><label>Prise</label><div class="selectwrap"><select class="input" id="l_grip">
       ${GRIPS.map(gname=>`<option ${gname===p.grip?"selected":""}>${gname}</option>`).join("")}
