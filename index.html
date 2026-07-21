@@ -303,7 +303,7 @@ canvas{width:100%;display:block}
    avec repli mémoire (fonctionne aussi en aperçu sandbox).
    ============================================================ */
 
-const APP_VERSION = "v9"; // incrémentée à chaque mise à jour — doit correspondre au cache du service worker
+const APP_VERSION = "v10"; // incrémentée à chaque mise à jour — doit correspondre au cache du service worker
 
 /* ---------- Persistance ---------- */
 const store = (() => {
@@ -436,6 +436,40 @@ const PRESETS = [
     desc:"Suspendu, jambes tendues à l'horizontale (L-sit) ou genoux groupés remontés vers la poitrine, bassin basculé (tuck lever). 5 maintiens de 8 s.",
     technique:"Commence par le tuck (genoux pliés) : bascule le bassin, arrondis le bas du dos, épaules verrouillées. Le L-sit exige des ischio-jambiers souples — n'aie pas honte de plier légèrement.",
     gains:"Gainage maximal + force des fléchisseurs de hanche et des épaules : la base des mouvements de compression, des talons hauts et du bloc physique." },
+
+  /* ===== MINI CRUX ===== */
+  { id:"mcx-warm", name:"Mini Crux — échauffement nomade", type:"Préparation", cat:"minicrux", color:"cool", grip:"Réglette tendue", edgeMm:25, addedKg:0, effortLabel:"Tirage",
+    prepSec:10, hangSec:10, restRepSec:20, reps:8, restSetSec:0, sets:1, builtin:true,
+    desc:"L'échauffement de poche, au pied des voies ou au bureau : tirages légers à l'élastique ou avec un petit poids, en descendant 25 → 20 → 15 mm au fil des reps.",
+    technique:"Assis ou debout, dos droit. Élastique sous le pied ou petit poids au sol. Tire lentement jusqu'à tension légère, tiens 10 s, relâche en contrôle. Change de main à chaque rep, descends de réglette toutes les 2-3 reps.",
+    gains:"Doigts chauds en 5 minutes n'importe où — la meilleure prévention des blessures du premier essai à froid en falaise." },
+  { id:"mcx-lift", name:"Mini Crux — soulevés max", type:"Force maximale", cat:"minicrux", color:"hot", grip:"Réglette semi-arquée", edgeMm:20, addedKg:25, effortLabel:"Tirage",
+    prepSec:15, hangSec:7, restRepSec:0, reps:1, restSetSec:60, sets:6, builtin:true,
+    desc:"Le protocole no-hang de référence : Mini Crux relié à une charge lourde au sol (disques, kettlebell), soulevé d'un bras sur la réglette 20 mm. 7 s de tenue, alterne les mains.",
+    technique:"Position de soulevé de terre : hanches basses, dos plat, épaule engagée. Décolle la charge de 2-3 cm seulement et tiens 7 s sans à-coup. La charge cible : très dur mais jamais d'ouverture de doigts. Alterne G/D à chaque tirage.",
+    gains:"Force maximale des doigts dosable au kilo près, chaque main travaillée séparément (révèle et corrige les déséquilibres), sans aucune contrainte d'épaule. Résistance de l'agrès : 120 kg." },
+  { id:"mcx-edge10", name:"Mini Crux — micro 10 mm", type:"Force maximale", cat:"minicrux", color:"hot", grip:"Réglette semi-arquée", edgeMm:10, addedKg:10, effortLabel:"Tirage",
+    prepSec:15, hangSec:10, restRepSec:0, reps:1, restSetSec:90, sets:5, builtin:true,
+    desc:"Soulevés légers sur la réglette de 10 mm : la précision de contact avant la force brute. Charge modérée, tenue parfaite.",
+    technique:"Sur 10 mm, le placement est tout : phalanges alignées, contact identique à chaque tirage. Charge volontairement modérée — si la position se dégrade, réduis. Semi-arqué strict, jamais d'arqué complet à froid.",
+    gains:"Recrutement et confiance sur micro-prises, avec un risque bien moindre qu'en suspension complète : la charge partielle permet un volume de qualité sur petite réglette." },
+
+  /* ===== MINI CRUX — SPÉCIAL PINCE ===== */
+  { id:"mcx-pinch-max", name:"Pince max — soulevés", type:"Force maximale", cat:"mcxpince", color:"hot", grip:"Pince", edgeMm:50, addedKg:15, effortLabel:"Serrage",
+    prepSec:15, hangSec:7, restRepSec:0, reps:1, restSetSec:90, sets:6, builtin:true,
+    desc:"Le cœur du travail de pince : Mini Crux saisi par sa pince large (~50 mm), relié à une charge, soulevé d'un bras. 7 s de serrage max, alterne les mains.",
+    technique:"Le pouce s'oppose franchement aux doigts — c'est LUI le moteur. Poignet neutre, avant-bras vertical au-dessus de la charge. Serre AVANT de décoller, monte 2-3 cm, tiens. Si le bloc glisse ou pivote, la charge est trop lourde.",
+    gains:"Force de pince pure (pouce, éminence thénar, fléchisseurs) — la préhension la moins entraînable sur poutre classique et pourtant décisive sur arêtes, colonnettes et blocs modernes." },
+  { id:"mcx-pinch-rep", name:"Pince — répéteurs 7:3", type:"Force-endurance", cat:"mcxpince", color:"cool", grip:"Pince", edgeMm:50, addedKg:8, effortLabel:"Serrage",
+    prepSec:12, hangSec:7, restRepSec:3, reps:6, restSetSec:120, sets:3, builtin:true,
+    desc:"Le protocole 7:3 appliqué à la pince : 6 serrages de 7 s par série, charge modérée. Une série par main, en alternance.",
+    technique:"Charge à ~60 % de ton max de pince. Pendant les 3 s de repos, pose la charge sans lâcher le bloc pour garder le placement. Fais la série complète d'une main, puis change — note la différence G/D dans tes notes.",
+    gains:"Endurance de serrage : la capacité à tenir des pinces sur la durée d'une voie, pas juste un mouvement. Le pouce se fatigue différemment des doigts — il faut l'entraîner spécifiquement." },
+  { id:"mcx-pinch-end", name:"Pince — tenues longues", type:"Endurance", cat:"mcxpince", color:"amber", grip:"Pince", edgeMm:50, addedKg:10, effortLabel:"Serrage",
+    prepSec:12, hangSec:30, restRepSec:60, reps:3, restSetSec:0, sets:2, builtin:true,
+    desc:"3 tenues de 30 s en pince à charge légère-modérée, 1 min de repos. Marche aussi en portage : le Mini Crux tenu en pince, charge suspendue, en marchant sur place (farmer walk).",
+    technique:"Charge qui permet 30 s propres avec ~10 s de marge. Le poignet reste neutre du début à la fin — s'il casse, c'est terminé. Version farmer : marche lentement, épaule basse, sans balancer la charge.",
+    gains:"Capacité de la pince sous fatigue prolongée + endurance du poignet et de l'avant-bras — le fond de commerce des longues sections à colonnettes et des dévers à plats." },
 ];
 
 /* ---------- État ---------- */
@@ -527,10 +561,10 @@ const GLYPH = `<img class="glyph" src="icon-192.png" alt="" width="34" height="3
 let plan = store.get("plan", null);
 function savePlan(){ store.set("plan", plan); }
 const ROTATIONS = {
-  force:      ["maxhangs","force5","minedge","pince","tri-nohang","tri-susp"],
-  endurance:  ["rep73","rep1515","eco3030","endurance","tri-rep"],
-  mixte:      ["maxhangs","rep73","force5","rep1515","minedge","eco3030","tri-nohang","tri-rep"],
-  deload:     ["submax","tri-elastic"]
+  force:      ["maxhangs","force5","minedge","pince","tri-nohang","tri-susp","mcx-lift","mcx-pinch-max"],
+  endurance:  ["rep73","rep1515","eco3030","endurance","tri-rep","mcx-pinch-rep"],
+  mixte:      ["maxhangs","rep73","force5","rep1515","minedge","eco3030","tri-nohang","tri-rep","mcx-lift","mcx-pinch-max"],
+  deload:     ["submax","tri-elastic","mcx-warm"]
 };
 const GAINAGE_IDS = ["core-sol","core-hollow","core-susp","core-lsit"];
 const GOAL_TXT = { force:"objectif force", endurance:"objectif endurance", mixte:"cycle mixte force / endurance" };
@@ -859,7 +893,7 @@ function renderPrograms(){
       <button class="icon-btn" id="addProg" aria-label="Nouveau"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
     </div>
     <button class="btn btn-ghost btn-block" id="newBtn" style="margin-bottom:6px">+ Créer un programme</button>
-    ${[["poutre","Poutre & hangboard"],["triangle","Triangle YY Vertical"],["gainage","Gainage"]].map(([cat,label])=>{
+    ${[["poutre","Poutre & hangboard"],["triangle","Triangle YY Vertical"],["minicrux","Mini Crux"],["mcxpince","Mini Crux — Spécial pince"],["gainage","Gainage"]].map(([cat,label])=>{
       const list = programs.filter(p=>(p.cat||"poutre")===cat);
       return list.length ? `<h2>${label}</h2>`+list.map(fullCard).join("") : "";
     }).join("")}
@@ -1051,7 +1085,7 @@ function openBuilder(existing){
     </div>
     <div class="row2">
       <div class="field"><label>Catégorie</label><div class="selectwrap"><select class="input" id="f_cat">
-        ${[["poutre","Poutre"],["triangle","Triangle"],["gainage","Gainage"]].map(([v,l])=>`<option value="${v}" ${v===(p.cat||"poutre")?"selected":""}>${l}</option>`).join("")}
+        ${[["poutre","Poutre"],["triangle","Triangle"],["minicrux","Mini Crux"],["mcxpince","Mini Crux — pince"],["gainage","Gainage"]].map(([v,l])=>`<option value="${v}" ${v===(p.cat||"poutre")?"selected":""}>${l}</option>`).join("")}
       </select></div></div>
       <div class="field"><label>Prise</label><div class="selectwrap"><select class="input" id="f_grip">
         ${GRIPS.map(gname=>`<option ${gname===p.grip?"selected":""}>${gname}</option>`).join("")}
