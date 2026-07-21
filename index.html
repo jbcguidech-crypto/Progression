@@ -241,6 +241,37 @@ canvas{width:100%;display:block}
 .cycrow.cur{background:rgba(20,184,162,.10);border-color:var(--cool-deep);color:var(--chalk)}
 .cycrow.cur .wk{color:var(--cool-deep)}
 
+/* progrès par domaine */
+.drow{display:flex;align-items:center;gap:10px;margin:9px 0}
+.drow .dl{width:62px;font-size:12px;font-weight:700}
+.dtrack{flex:1;height:10px;border-radius:5px;background:rgba(28,35,45,.08);position:relative;overflow:hidden}
+.dfill{position:absolute;left:0;top:0;bottom:0;border-radius:5px;transition:width .3s}
+.dmin{position:absolute;top:0;bottom:0;width:2px;background:rgba(28,35,45,.30)}
+.drow .dv{font-family:var(--mono);font-size:11px;color:var(--muted);width:46px;text-align:right;font-weight:700}
+.wgrid{display:flex;justify-content:space-between;align-items:center;padding:8px 2px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12px}
+.wgrid:last-child{border-bottom:none}
+.wgrid .wl{color:var(--muted);font-weight:600;font-size:11px}
+.wgrid b{font-weight:800}
+.wgrid .ok{color:var(--cool-deep)} .wgrid .ko{color:var(--muted-2)}
+
+/* bibliothèque : sections repliables + lignes compactes */
+.acc{width:100%;display:flex;align-items:center;gap:10px;padding:14px;border-radius:var(--r);
+  background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);margin-top:10px;text-align:left}
+.acc .al{flex:1;font-weight:800;font-size:15px;letter-spacing:-.01em}
+.acc .an{font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:700;
+  background:rgba(28,35,45,.05);border:1px solid var(--line);padding:2px 8px;border-radius:999px}
+.acc .chev{width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);
+  transform:rotate(45deg);transition:transform .2s;margin:0 4px 3px 0}
+.acc.open .chev{transform:rotate(-135deg);margin:3px 4px 0 0}
+.accbody{display:none;padding:2px 0 0}
+.acc.open+.accbody{display:block}
+.prow{display:flex;align-items:center;gap:11px;padding:11px 12px;background:var(--bg-2);
+  border:1px solid var(--line);border-radius:12px;margin-top:6px;box-shadow:var(--shadow);cursor:pointer}
+.prow .pdot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+.prow .pmain{flex:1;min-width:0}
+.prow .pn{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow .ps{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:2px}
+
 /* plan du jour (programme général) */
 .slotrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
 .slotrow:last-of-type{border-bottom:none}
@@ -314,7 +345,7 @@ canvas{width:100%;display:block}
    avec repli mémoire (fonctionne aussi en aperçu sandbox).
    ============================================================ */
 
-const APP_VERSION = "v16"; // incrémentée à chaque mise à jour — doit correspondre au cache du service worker
+const APP_VERSION = "v18"; // incrémentée à chaque mise à jour — doit correspondre au cache du service worker
 
 /* ---------- Persistance ---------- */
 const store = (() => {
@@ -692,6 +723,13 @@ function weekSessions(){
   const mon = mondayOf(new Date()).getTime();
   return sessions.filter(s=>new Date(s.dateISO).getTime()>=mon);
 }
+function weekCountsAt(monTime){
+  const end = monTime + 7*864e5;
+  const c={doigts:0,haut:0,gainage:0};
+  sessions.forEach(s=>{ const t=new Date(s.dateISO).getTime();
+    if(t>=monTime && t<end){ const d=domainOf(s.programId); if(d) c[d]++; } });
+  return c;
+}
 function weekCounts(){
   const c={doigts:0,haut:0,gainage:0};
   weekSessions().forEach(s=>{ const d=domainOf(s.programId); if(d) c[d]++; });
@@ -705,10 +743,13 @@ function generalDayPlan(deload, isDay){
   const submax = programs.find(p=>p.id==="submax");
   // surveillance de surcharge globale : 3 séances très dures cette semaine -> tout en léger
   const hardWeek = weekSessions().filter(s=>s.rpe>=9).length >= 3;
+  // douleur signalée dans les 5 derniers jours : vive -> pas de doigts ; légère -> doigts en sous-max
+  const painS = sessions.find(s=>(s.pain||0)>=1 && (Date.now()-new Date(s.dateISO).getTime())/864e5 < 5);
+  const painLvl = painS ? painS.pain : 0;
 
   // --- DOIGTS ---
-  if(counts.doigts < WEEK_TARGETS.doigts.max && !todayDomains.has("doigts") && isDay && !deload && !hardWeek){
-    let ok = true, light = false;
+  if(counts.doigts < WEEK_TARGETS.doigts.max && !todayDomains.has("doigts") && isDay && !deload && !hardWeek && painLvl<2){
+    let ok = true, light = painLvl===1;
     const lastFinger = sessions.find(s=>domainOf(s.programId)==="doigts");
     if(lastFinger){
       const hrs = (Date.now()-new Date(lastFinger.dateISO))/36e5;
@@ -732,7 +773,7 @@ function generalDayPlan(deload, isDay){
     const prog = pickNext(GENERAL_POOLS.gainage);
     if(prog) slots.push({domain:"gainage", prog, optional:counts.gainage>=WEEK_TARGETS.gainage.min});
   }
-  return { slots, counts, hardWeek };
+  return { slots, counts, hardWeek, painLvl, painNote: painS ? (painS.painNote||"") : "" };
 }
 const GOAL_TXT = { general:"programme général complet", force:"objectif force", endurance:"objectif endurance", mixte:"cycle mixte force / endurance" };
 
@@ -824,7 +865,7 @@ function todayRec(){
     const isDay = plan.days.includes(dow);
     const dp = generalDayPlan(deload, isDay);
     if(!dp.slots.length) return { kind:"genDone", counts:dp.counts, cyc:cycG };
-    return { kind:"genPlan", slots:dp.slots, counts:dp.counts, cyc:cycG, deload, restDay:!isDay, hardWeek:dp.hardWeek };
+    return { kind:"genPlan", slots:dp.slots, counts:dp.counts, cyc:cycG, deload, restDay:!isDay, hardWeek:dp.hardWeek, painLvl:dp.painLvl, painNote:dp.painNote };
   }
   if(!plan.days.includes(dow)) return { kind:"rest", alt:submax };
   const cyc = cycleInfo();
@@ -853,7 +894,9 @@ function recCard(r){
     const badge = r.cyc
       ? `<div class="rec-badge ${r.deload?"amber":"cool"}">Sem. ${r.cyc.week+1}/${r.cyc.total} · ${r.deload?"Décharge":"Général"}</div>`
       : `<div class="rec-badge cool">Plan du jour</div>`;
-    const note = r.hardWeek ? "3 séances très dures cette semaine : tout passe en léger, c'est le corps qui encaisse." :
+    const note = r.painLvl===2 ? `Douleur vive signalée${r.painNote?` (${esc(r.painNote)})`:""} : zéro doigts tant que ça dure. Si ça persiste plus d'une semaine, consulte.` :
+      r.painLvl===1 ? `Gêne signalée${r.painNote?` (${esc(r.painNote)})`:""} : doigts en sous-max léger uniquement, on surveille.` :
+      r.hardWeek ? "3 séances très dures cette semaine : tout passe en léger, c'est le corps qui encaisse." :
       r.deload ? "Semaine légère : sous-max doigts et gainage doux uniquement." :
       r.restDay ? "Jour off du calendrier — mais le quota gainage continue, il se travaille presque tous les jours." :
       "Fais les doigts en premier, quand tu es frais. Le reste peut suivre ou attendre le soir.";
@@ -1124,49 +1167,44 @@ function bindCard(p){
 }
 
 /* ---------- Programmes ---------- */
+let accOpen = store.get("accOpen", {});
 function renderPrograms(){
+  const CATS = [["poutre","Poutre & hangboard"],["triangle","Triangle YY Vertical"],["minicrux","Mini Crux"],["mcxpince","Mini Crux — Spécial pince"],["traction","Tractions"],["renfo","Renfo — kettlebells & co"],["gainage","Gainage"],["antago","Antagonistes"]];
   view.innerHTML = `
     <div class="topbar"><div><div class="eyebrow">Bibliothèque <span class="ver">${APP_VERSION}</span></div><h1>Programmes</h1></div>
       <button class="icon-btn" id="addProg" aria-label="Nouveau"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
     </div>
-    <button class="btn btn-ghost btn-block" id="newBtn" style="margin-bottom:6px">+ Créer un programme</button>
-    ${[["poutre","Poutre & hangboard"],["triangle","Triangle YY Vertical"],["minicrux","Mini Crux"],["mcxpince","Mini Crux — Spécial pince"],["traction","Tractions"],["renfo","Renfo — kettlebells & co"],["gainage","Gainage"],["antago","Antagonistes"]].map(([cat,label])=>{
+    <p class="hint" style="text-align:left;margin:0 0 4px">Déplie une famille, tape une ligne pour la fiche complète (technique, gains, modifier), ou Go pour démarrer directement.</p>
+    ${CATS.map(([cat,label])=>{
       const list = programs.filter(p=>(p.cat||"poutre")===cat);
-      return list.length ? `<h2>${label}</h2>`+list.map(fullCard).join("") : "";
+      if(!list.length) return "";
+      const open = !!accOpen[cat];
+      return `<button class="acc ${open?"open":""}" data-cat="${cat}">
+        <span class="al">${label}</span><span class="an">${list.length}</span><span class="chev"></span>
+      </button>
+      <div class="accbody">${list.map(prow).join("")}</div>`;
     }).join("")}
+    <button class="btn btn-ghost btn-block" id="newBtn" style="margin-top:14px">+ Créer un programme</button>
   `;
-  programs.forEach(p=>{
-    const el=view.querySelector(`.prog[data-pid="${p.id}"]`); if(!el) return;
-    el.querySelector(".start").onclick=()=>startSession(p);
-    el.querySelector(".pinfo").onclick=()=>openDetail(p);
-    el.querySelector(".edit").onclick=()=>openBuilder(p);
-    el.querySelector(".dup").onclick=()=>{ const c={...p,id:uid(),name:p.name+" (copie)",builtin:false}; programs.push(c); saveP(); render(); toast("Programme dupliqué"); };
-    const del=el.querySelector(".del"); if(del) del.onclick=()=>{ if(confirm(`Supprimer « ${p.name} » ?`)){ programs=programs.filter(x=>x.id!==p.id); saveP(); render(); toast("Supprimé"); } };
+  view.querySelectorAll(".acc").forEach(b=>b.onclick=()=>{
+    const c=b.dataset.cat; accOpen[c]=!accOpen[c]; store.set("accOpen",accOpen); b.classList.toggle("open");
+  });
+  view.querySelectorAll(".prow").forEach(el=>{
+    const p=programs.find(x=>x.id===el.dataset.pid); if(!p) return;
+    el.querySelector(".pgo").onclick=(e)=>{ e.stopPropagation();
+      const sug=loadSuggestion(p); startSession(sug?{...p,addedKg:sug.kg}:p); };
+    el.onclick=()=>openDetail(p);
   });
   $("#addProg").onclick=$("#newBtn").onclick=()=>openBuilder(null);
 }
-function fullCard(p){
-  return `<div class="card prog ${p.color}" data-pid="${p.id}">
-    <div class="rail"></div>
-    <div class="prog-head">
-      <div><div class="prog-name">${esc(p.name)}</div><div class="prog-type">${esc(p.type)}${p.builtin?" · intégré":""}</div></div>
-    </div>
-    <div class="prog-desc">${esc(p.desc||"")}</div>
-    <div class="prog-meta">
-      <span class="tag">${esc(p.grip)}</span>
-      ${p.edgeMm?`<span class="tag"><b>${p.edgeMm}</b>mm</span>`:""}
-      <span class="tag"><b>${p.hangSec}</b>s${p.restRepSec?` / ${p.restRepSec}s`:""}</span>
-      <span class="tag"><b>${p.reps}</b>×<b>${p.sets}</b></span>
-      ${p.addedKg?`<span class="tag"><b>${p.addedKg>0?"+":""}${p.addedKg}</b>kg</span>`:""}
-      <span class="tag">≈<b>${Math.round(estDuration(p)/60)}</b>min</span>
-    </div>
-    <div class="prog-actions">
-      <button class="btn btn-primary btn-sm start">Démarrer</button>
-      <button class="icon-btn pinfo" aria-label="Détails"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button>
-      <button class="icon-btn edit" aria-label="Modifier"><svg viewBox="0 0 24 24"><path d="M4 20h4L18 10l-4-4L4 16zM14 6l4 4"/></svg></button>
-      <button class="icon-btn dup" aria-label="Dupliquer"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg></button>
-      ${p.builtin?"":`<button class="icon-btn del" aria-label="Supprimer"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg></button>`}
-    </div>
+function prow(p){
+  const stats=[`${p.hangSec}s${p.restRepSec?"/"+p.restRepSec+"s":""}`, `${p.reps}×${p.sets}`,
+    p.edgeMm?`${p.edgeMm}mm`:null, p.addedKg?`${p.addedKg>0?"+":""}${p.addedKg}kg`:null,
+    `≈${Math.round(estDuration(p)/60)}min`].filter(Boolean).join(" · ");
+  return `<div class="prow" data-pid="${p.id}">
+    <span class="pdot" style="background:var(--${p.color})"></span>
+    <div class="pmain"><div class="pn">${esc(p.name)}</div><div class="ps">${stats}</div></div>
+    <button class="btn btn-primary btn-sm pgo">Go</button>
   </div>`;
 }
 
@@ -1187,6 +1225,30 @@ function renderProgress(){
         <svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 16l3-4 3 2 4-6"/></svg>
         <p>Aucune séance enregistrée. Lance un programme depuis l’onglet Entraîner — ta progression s’affichera ici.</p>
       </div>` : `
+      <h2>Domaines — cette semaine</h2>
+      <div class="card">
+        ${(()=>{ const c=weekCountsAt(mondayOf(new Date()).getTime()), t=WEEK_TARGETS;
+          return [["doigts","Doigts","var(--hot)"],["haut","Muscles","#3aa0d6"],["gainage","Gainage","var(--amber)"]].map(([k,l,col])=>{
+            const v=c[k], tg=t[k];
+            return `<div class="drow"><div class="dl">${l}</div>
+              <div class="dtrack"><div class="dfill" style="width:${Math.min(100,v/tg.max*100)}%;background:${col}"></div>
+              <div class="dmin" style="left:${tg.min/tg.max*100}%"></div></div>
+              <div class="dv">${v}/${tg.min}–${tg.max}</div></div>`;
+          }).join(""); })()}
+        <p class="hint" style="text-align:left;margin:6px 0 0">Le trait vertical marque le minimum hebdomadaire visé.</p>
+      </div>
+      <h2>6 dernières semaines</h2>
+      <div class="card" style="padding:8px 14px">
+        <div class="wgrid" style="border-bottom:1px solid var(--line-strong)"><span class="wl">Semaine</span><span class="wl">Doigts</span><span class="wl">Muscles</span><span class="wl">Gainage</span></div>
+        ${(()=>{ const t=WEEK_TARGETS, rows=[];
+          for(let i=0;i<6;i++){
+            const mon=mondayOf(new Date()).getTime()-i*7*864e5, c=weekCountsAt(mon), d=new Date(mon);
+            rows.push(`<div class="wgrid"><span class="wl">${i===0?"En cours":d.getDate()+"/"+(d.getMonth()+1)}</span>
+              <b class="${c.doigts>=t.doigts.min?"ok":"ko"}">${c.doigts}</b>
+              <b class="${c.haut>=t.haut.min?"ok":"ko"}">${c.haut}</b>
+              <b class="${c.gainage>=t.gainage.min?"ok":"ko"}">${c.gainage}</b></div>`);
+          } return rows.join(""); })()}
+      </div>
       <h2>Charge & volume par séance</h2>
       <div class="card chartwrap">
         <canvas id="chart" height="360"></canvas>
@@ -1216,7 +1278,7 @@ function histRow(s){
     <div class="dot" style="background:var(--${colorOf(s.programId)})"></div>
     <div class="main">
       <div class="t">${esc(s.programName)}</div>
-      <div class="s">${relDate(s.dateISO)} · ${esc(s.grip)} · ${s.edgeMm} mm${s.notes?" · "+esc(s.notes.slice(0,28)):""}</div>
+      <div class="s">${relDate(s.dateISO)} · ${esc(s.grip)}${s.edgeMm?` · ${s.edgeMm} mm`:""}${(s.pain||0)>0?` · ⚠ ${s.pain===2?"douleur":"gêne"}`:""}${s.notes?" · "+esc(s.notes.slice(0,24)):""}</div>
     </div>
     <div class="r"><b>${s.loadKg>0?"+":""}${s.loadKg}kg</b>RPE ${s.rpe}</div>
   </div>`;
@@ -1238,6 +1300,7 @@ function openSessionDetail(s){
       <span class="tag"><b>${s.completedReps}</b>/${s.totalReps} reps</span>
       <span class="tag"><b>${Math.round(s.hangTimeSec)}</b>s suspendu</span>
     </div>
+    ${(s.pain||0)>0?`<div class="field"><label>Douleur signalée</label><div class="card" style="font-size:14px;border-color:rgba(232,78,42,.4)">⚠ ${s.pain===2?"Vive":"Légère"}${s.painNote?" — "+esc(s.painNote):""}</div></div>`:""}
     ${s.notes?`<div class="field"><label>Notes</label><div class="card" style="font-size:14px">${esc(s.notes)}</div></div>`:""}
     <button class="btn btn-ghost btn-block" id="delSess" style="margin-top:8px;color:var(--hot)">Supprimer cette séance</button>
   `);
@@ -1274,18 +1337,42 @@ function drawChart(){
     const dd=new Date(d.dateISO); g.fillText(dd.getDate()+"/"+(dd.getMonth()+1),cx,H-12);
   });
 }
+function drawDetChart(hist){
+  const cv=document.getElementById("detChart"); if(!cv) return;
+  const dpr=window.devicePixelRatio||1, W=cv.clientWidth, H=150;
+  cv.width=W*dpr; cv.height=H*dpr;
+  const g=cv.getContext("2d"); g.scale(dpr,dpr); g.clearRect(0,0,W,H);
+  const padL=30,padR=8,padT=22,padB=24, cw=W-padL-padR, ch=H-padT-padB;
+  const maxKg=Math.max(4,...hist.map(s=>Math.abs(s.loadKg)));
+  g.strokeStyle="rgba(28,35,45,.08)"; g.lineWidth=1;
+  for(let i=0;i<=2;i++){ const y=padT+ch*i/2; g.beginPath(); g.moveTo(padL,y); g.lineTo(padL+cw,y); g.stroke();
+    g.fillStyle="#7A828E"; g.font="600 9px 'JetBrains Mono',monospace"; g.textAlign="right";
+    g.fillText(Math.round(maxKg*(1-i/2)),padL-5,y+3); }
+  const n=hist.length, slot=cw/n, bw=Math.min(22,slot*0.55);
+  hist.forEach((s,i)=>{
+    const cx=padL+slot*i+slot/2, h=Math.abs(s.loadKg)/maxKg*ch;
+    g.fillStyle = s.loadKg<0 ? "#3aa0d6" : "#E84E2A";
+    roundRect(g,cx-bw/2,padT+ch-h,bw,Math.max(3,h),4);
+    g.fillStyle="#5D6774"; g.textAlign="center"; g.font="700 9px 'JetBrains Mono',monospace";
+    g.fillText("R"+s.rpe,cx,padT+ch-h-5);
+    g.fillStyle="#98A0AB"; g.font="600 8.5px 'JetBrains Mono',monospace";
+    const d=new Date(s.dateISO); g.fillText(d.getDate()+"/"+(d.getMonth()+1),cx,H-9);
+  });
+}
 function roundRect(g,x,y,w,h,r){ if(h<=0)return; r=Math.min(r,w/2,h); g.beginPath();
   g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r); g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.fill(); }
 
 /* ---------- Détail programme (sheet) ---------- */
 function openDetail(p){
   const sug = loadSuggestion(p);
+  const detHist = sessions.filter(s=>s.programId===p.id).slice(0,10).reverse();
   sheet(`
     <h3>${esc(p.name)}</h3>
     <div class="sub">${esc(p.type)}${sug && sug.delta!==0 ? ` · lest conseillé : ${sug.kg>0?"+":""}${sug.kg} kg (RPE ${sug.prev.rpe} la dernière fois)` : ""}</div>
     <p style="color:var(--muted);font-size:14px;margin-bottom:14px">${esc(p.desc||"")}</p>
     ${p.technique?`<div style="margin-bottom:12px"><div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--cool-deep);font-weight:800;margin-bottom:5px">Technique</div><p style="color:var(--muted);font-size:13.5px">${esc(p.technique)}</p></div>`:""}
     ${p.gains?`<div style="margin-bottom:14px"><div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--hot-deep);font-weight:800;margin-bottom:5px">Ce que ça développe</div><p style="color:var(--muted);font-size:13.5px">${esc(p.gains)}</p></div>`:""}
+    ${detHist.length>=2?`<div style="margin-bottom:14px"><div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:800;margin-bottom:6px">Ta progression (${detHist.length} séances)</div><canvas id="detChart" height="150"></canvas></div>`:""}
     <div class="prog-meta" style="padding:0;margin-bottom:18px">
       <span class="tag">${esc(p.grip)}</span>
       ${p.edgeMm?`<span class="tag">Réglette <b>${p.edgeMm}</b>mm</span>`:""}
@@ -1299,9 +1386,19 @@ function openDetail(p){
       <span class="tag">Durée ≈<b>${Math.round(estDuration(p)/60)}</b>min</span>
       <span class="tag">Suspendu <b>${hangTime(p)}</b>s</span>
     </div>
-    <button class="btn btn-primary btn-block" id="detStart">Démarrer</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" style="flex:1" id="detStart">Démarrer</button>
+      <button class="icon-btn" id="detEdit" aria-label="Modifier"><svg viewBox="0 0 24 24"><path d="M4 20h4L18 10l-4-4L4 16zM14 6l4 4"/></svg></button>
+      <button class="icon-btn" id="detDup" aria-label="Dupliquer"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg></button>
+      ${p.builtin?"":'<button class="icon-btn" id="detDel" aria-label="Supprimer"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg></button>'}
+    </div>
   `);
-  $("#detStart").onclick=()=>{ closeSheet(); startSession(p); };
+  if(detHist.length>=2) requestAnimationFrame(()=>drawDetChart(detHist));
+  $("#detStart").onclick=()=>{ closeSheet(); const sug=loadSuggestion(p); startSession(sug?{...p,addedKg:sug.kg}:p); };
+  $("#detEdit").onclick=()=>{ closeSheet(); openBuilder(p); };
+  $("#detDup").onclick=()=>{ const c={...p,id:uid(),name:p.name+" (copie)",builtin:false}; programs.push(c); saveP(); closeSheet(); render(); toast("Programme dupliqué"); };
+  const dd=document.getElementById("detDel");
+  if(dd) dd.onclick=()=>{ if(confirm(`Supprimer « ${p.name} » ?`)){ programs=programs.filter(x=>x.id!==p.id); saveP(); closeSheet(); render(); toast("Supprimé"); } };
 }
 
 /* ---------- Builder ---------- */
@@ -1668,30 +1765,35 @@ function finishSession(){
 }
 
 
-/* ---------- Proposition antagonistes après séance ---------- */
-function openAntagoSheet(){
-  const list = ANTAGO_IDS.map(id=>programs.find(p=>p.id===id)).filter(Boolean);
-  if(!list.length){ render(); return; }
+/* ---------- Après la séance : suite du plan + antagonistes ---------- */
+function openNextSheet(p){
+  const r = todayRec();
+  const nextSlots = (r && r.kind==="genPlan") ? r.slots : [];
+  const anta = shouldAntago(p) ? ANTAGO_IDS.map(id=>programs.find(x=>x.id===id)).filter(Boolean) : [];
+  if(!nextSlots.length && !anta.length){ render(); return; }
+  const row = (dot,title,sub,cls,key)=>`<div class="slotrow">
+    <span class="sdot" style="background:${dot}"></span>
+    <div class="smain"><div class="st">${title}</div><div class="ss">${sub}</div></div>
+    <button class="btn btn-primary btn-sm ${cls}" data-k="${key}">Go</button></div>`;
   sheet(`
-    <h3>Compense les antagonistes</h3>
-    <div class="sub">Après le tirage, 3-5 minutes d'extenseurs et de poussée : c'est l'assurance anti-blessure des coudes, poignets et épaules.</div>
-    ${list.map(p=>`<div class="card" style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:800;font-size:15px">${esc(p.name)}</div>
-        <div class="mono" style="font-size:11.5px;color:var(--muted);margin-top:3px">≈${Math.round(estDuration(p)/60)} min · ${p.sets} série${p.sets>1?"s":""}</div>
-      </div>
-      <button class="icon-btn anta-info" data-pid="${p.id}" aria-label="Détails"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button>
-      <button class="btn btn-primary btn-sm anta-go" data-pid="${p.id}">Go</button>
-    </div>`).join("")}
-    <button class="btn btn-ghost btn-block" id="antaLater" style="margin-top:4px">Pas cette fois</button>
+    <h3>Et ensuite ?</h3>
+    <div class="sub">Séance terminée. Tu peux enchaîner maintenant ou revenir plus tard — le plan se met à jour tout seul.</div>
+    ${nextSlots.length?`<div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--cool-deep);font-weight:800;margin:4px 0 2px">Suite du plan du jour</div>
+      ${nextSlots.map((s,i)=>{ const sug=loadSuggestion(s.prog);
+        return row(POOL_DOT[s.domain], `${POOL_TXT[s.domain]} — ${esc(s.prog.name)}${s.light?" (léger)":s.optional?" (optionnel)":""}`,
+          `≈${Math.round(estDuration(s.prog)/60)} min${sug&&sug.delta!==0?` · lest ${sug.kg>0?"+":""}${sug.kg} kg`:""}`, "ns-slot", i); }).join("")}`:""}
+    ${anta.length?`<div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--hot-deep);font-weight:800;margin:12px 0 2px">Antagonistes — recommandé après le tirage</div>
+      ${anta.map(a=>row("var(--cool)", esc(a.name), `≈${Math.round(estDuration(a)/60)} min · ${a.sets} série${a.sets>1?"s":""}`, "ns-anta", a.id)).join("")}`:""}
+    <button class="btn btn-ghost btn-block" id="nsDone" style="margin-top:12px">Terminé pour aujourd'hui</button>
   `);
-  document.querySelectorAll(".anta-go").forEach(b=>b.onclick=()=>{
-    const p=programs.find(x=>x.id===b.dataset.pid); if(p){ closeSheet(); startSession(p); }
+  document.querySelectorAll(".ns-slot").forEach(b=>b.onclick=()=>{
+    const s=nextSlots[+b.dataset.k]; if(!s) return;
+    const sug=loadSuggestion(s.prog); closeSheet(); startSession(sug?{...s.prog,addedKg:sug.kg}:s.prog);
   });
-  document.querySelectorAll(".anta-info").forEach(b=>b.onclick=()=>{
-    const p=programs.find(x=>x.id===b.dataset.pid); if(p) openDetail(p);
+  document.querySelectorAll(".ns-anta").forEach(b=>b.onclick=()=>{
+    const a=programs.find(x=>x.id===b.dataset.k); if(a){ closeSheet(); startSession(a); }
   });
-  document.getElementById("antaLater").onclick=()=>{ closeSheet(); render(); };
+  document.getElementById("nsDone").onclick=()=>{ closeSheet(); render(); };
 }
 
 /* ---------- Journal post-séance ---------- */
@@ -1710,6 +1812,10 @@ function openLog(p, done, total){
     <div class="field"><label>Effort perçu (RPE)</label><div class="rpe" id="l_rpe">
       ${[4,5,6,7,8,9,10].map(v=>`<button data-v="${v}" class="${v===7?"on":""}">${v}</button>`).join("")}
     </div></div>
+    <div class="field"><label>Douleur / gêne</label><div class="goalseg" id="l_pain">
+      <button data-v="0" class="on">Aucune</button><button data-v="1">Légère</button><button data-v="2">Vive</button>
+    </div></div>
+    <div class="field" id="l_painw" style="display:none"><input class="input" id="l_painnote" placeholder="Où ? (ex. annulaire droit, poulie A2, épaule…)"></div>
     <div class="field"><label>Notes</label><textarea class="input" id="l_notes" placeholder="Sensations, réglette tenue, ce qui a lâché…"></textarea></div>
     <div class="row2">
       <button class="btn btn-ghost" id="l_skip">Ne pas enregistrer</button>
@@ -1720,16 +1826,22 @@ function openLog(p, done, total){
   $("#l_rpe").querySelectorAll("button").forEach(b=>b.onclick=()=>{
     $("#l_rpe").querySelectorAll("button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); rpe=+b.dataset.v;
   });
-  $("#l_skip").onclick=()=>{ closeSheet(); if(shouldAntago(p)) openAntagoSheet(); else render(); };
+  let pain=0;
+  $("#l_pain").querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    $("#l_pain").querySelectorAll("button").forEach(x=>x.classList.remove("on")); b.classList.add("on");
+    pain=+b.dataset.v; $("#l_painw").style.display = pain>0 ? "block" : "none";
+  });
+  $("#l_skip").onclick=()=>{ closeSheet(); openNextSheet(p); };
   $("#l_save").onclick=()=>{
     sessions.unshift({
       id:uid(), programId:p.id, programName:p.name, dateISO:new Date().toISOString(),
       grip:$("#l_grip").value, edgeMm:step.val.l_edge, loadKg:step.val.l_kg, rpe,
       completedReps:done, totalReps:total, hangTimeSec:done*p.hangSec,
+      pain, painNote: pain>0 ? $("#l_painnote").value.trim() : "",
       notes:$("#l_notes").value.trim()
     });
     saveS(); closeSheet(); tab="progress"; render(); toast("Séance enregistrée 💪");
-    if(shouldAntago(p)) openAntagoSheet();
+    openNextSheet(p);
   };
 }
 

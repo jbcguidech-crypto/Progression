@@ -1,5 +1,5 @@
 /* Poutre — service worker (offline) */
-const CACHE = "poutre-v16";
+const CACHE = "poutre-v18";
 const ASSETS = [
   "./",
   "./index.html",
