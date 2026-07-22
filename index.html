@@ -296,6 +296,23 @@ canvas{width:100%;display:block}
 .installbar.show{display:flex}
 .installbar .txt{flex:1;font-size:13.5px;color:var(--muted)}
 .installbar .txt b{color:var(--chalk)}
+
+/* ---------- Thème sombre (opt-in) ---------- */
+html.dark{
+  --bg:#14181F; --bg-2:#1A202A; --surface:#212A35; --surface-2:#2A3441;
+  --line:rgba(236,234,225,.09); --line-strong:rgba(236,234,225,.20);
+  --chalk:#ECEAE1; --muted:#8A94A2; --muted-2:#616B78;
+  --shadow:none;
+}
+html.dark body{background-image:radial-gradient(120% 60% at 50% -10%, #1E2530 0%, var(--bg) 55%)}
+html.dark .nav{background:rgba(20,24,31,.86)}
+html.dark #toast{background:var(--surface-2);box-shadow:0 12px 40px rgba(0,0,0,.4)}
+html.dark .tag,html.dark .btn-ghost,html.dark .icon-btn,html.dark .acc .an{background:rgba(236,234,225,.06)}
+html.dark .dtrack{background:rgba(236,234,225,.10)}
+html.dark .dmin{background:rgba(236,234,225,.35)}
+html.dark .stepper button{background:rgba(49,214,192,.08)}
+html.dark .sheet{box-shadow:0 -12px 40px rgba(0,0,0,.5)}
+html.dark .sheet-bg{background:rgba(3,5,8,.6)}
 </style>
 </head>
 <body>
@@ -345,7 +362,7 @@ canvas{width:100%;display:block}
    avec repli mémoire (fonctionne aussi en aperçu sandbox).
    ============================================================ */
 
-const APP_VERSION = "v19"; // incrémentée à chaque mise à jour — doit correspondre au cache du service worker
+const APP_VERSION = "v21"; // incrémentée à chaque mise à jour — doit correspondre au cache du service worker
 
 /* ---------- Persistance ---------- */
 const store = (() => {
@@ -638,13 +655,14 @@ function hangTime(p){ return p.sets*p.reps*p.hangSec; }
 function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),2200); }
 
 function dayKey(d){ const x=new Date(d); return `${x.getFullYear()}-${x.getMonth()}-${x.getDate()}`; }
-function computeStreak(){
-  if(!sessions.length) return 0;
-  const days = new Set(sessions.map(s=>dayKey(s.dateISO)));
-  let streak=0; const d=new Date();
-  // autorise que le dernier jour compté soit aujourd'hui ou hier
-  if(!days.has(dayKey(d))){ d.setDate(d.getDate()-1); if(!days.has(dayKey(d))) return 0; }
-  while(days.has(dayKey(d))){ streak++; d.setDate(d.getDate()-1); }
+function weekMinsMet(c){ const t=WEEK_TARGETS; return c.doigts>=t.doigts.min && c.haut>=t.haut.min && c.gainage>=t.gainage.min; }
+function weekFullStreak(){
+  const monNow = mondayOf(new Date()).getTime();
+  let streak = weekMinsMet(weekCountsAt(monNow)) ? 1 : 0; // semaine en cours si déjà complète
+  for(let i=1;i<520;i++){
+    if(weekMinsMet(weekCountsAt(monNow - i*7*864e5))) streak++;
+    else break;
+  }
   return streak;
 }
 
@@ -671,7 +689,19 @@ const audio = (() => {
     done(){ [660,880,1180].forEach((f,i)=>setTimeout(()=>beep(f,0.3,0.16,"sine"),i*140)); },
   };
 })();
-let settings = store.get("settings", { sound:true, vibrate:true, wake:true });
+let settings = store.get("settings", { sound:true, vibrate:true, wake:true, theme:"light" });
+function applyTheme(){
+  const dark = settings.theme==="dark";
+  document.documentElement.classList.toggle("dark", dark);
+  const m=document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content", dark?"#14181F":"#F5F2EB");
+}
+applyTheme();
+function chartInk(){
+  const dark = document.documentElement.classList.contains("dark");
+  return { grid: dark?"rgba(236,234,225,.08)":ink.grid,
+           label: dark?"#8A94A2":ink.label,
+           strong: dark?"#B9C0CB":ink.strong };
+}
 function vibrate(ms){ if(settings.vibrate && navigator.vibrate) try{ navigator.vibrate(ms); }catch(e){} }
 
 /* ============================================================
@@ -984,8 +1014,9 @@ function bindRec(r){
     });
   }
 }
-function openPlanSheet(){
-  const cur = plan ? {goal:plan.goal, days:[...plan.days], cycle:!!plan.cycleStart, weeks:plan.cycleWeeks||6} : {goal:"mixte", days:[2,4,6], cycle:false, weeks:6};
+function openPlanSheet(presetGoal){
+  const cur = plan ? {goal:plan.goal, days:[...plan.days], cycle:!!plan.cycleStart, weeks:plan.cycleWeeks||6} : {goal:"general", days:[1,2,3,4,5,6], cycle:true, weeks:12};
+  if(typeof presetGoal==="string"){ cur.goal=presetGoal; if(presetGoal==="general"&&!plan){ cur.days=[1,2,3,4,5,6]; } }
   const DAYS = [["L",1],["M",2],["M",3],["J",4],["V",5],["S",6],["D",0]];
   sheet(`
     <h3>Calendrier d'entraînement</h3>
@@ -1080,7 +1111,7 @@ function bindBackupBanner(){
 }
 
 function renderTrain(){
-  const s = computeStreak();
+  const s = weekFullStreak();
   const total = sessions.length;
   const totalHang = sessions.reduce((a,x)=>a+(x.hangTimeSec||0),0);
   const last = sessions[0];
@@ -1097,7 +1128,7 @@ function renderTrain(){
     ${testBanner()}
     ${recCard(rec)}
     <div class="chips" style="margin-top:12px">
-      <div class="chip cool"><div class="n">${s}</div><div class="l">Jours de suite</div></div>
+      <div class="chip cool"><div class="n">${s}</div><div class="l">Semaines OK</div></div>
       <div class="chip"><div class="n">${total}</div><div class="l">Séances</div></div>
       <div class="chip amber"><div class="n">${Math.round(totalHang/60)}</div><div class="l">Min d'effort</div></div>
     </div>
@@ -1169,13 +1200,39 @@ function bindCard(p){
 }
 
 /* ---------- Programmes ---------- */
-let accOpen = store.get("accOpen", {});
+let accOpen = store.get("accOpen", null);
+if(!accOpen){ accOpen={poutre:true}; store.set("accOpen",accOpen); }
 function renderPrograms(){
   const CATS = [["poutre","Poutre & hangboard"],["triangle","Triangle YY Vertical"],["minicrux","Mini Crux"],["mcxpince","Mini Crux — Spécial pince"],["traction","Tractions"],["renfo","Renfo — kettlebells & co"],["gainage","Gainage"],["antago","Antagonistes"]];
   view.innerHTML = `
     <div class="topbar"><div><div class="eyebrow">Bibliothèque <span class="ver">${APP_VERSION}</span></div><h1>Programmes</h1></div>
       <button class="icon-btn" id="addProg" aria-label="Nouveau"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
     </div>
+    <h2>Plans d'entraînement</h2>
+    ${(()=>{
+      const PLANS=[
+        ["general","Programme général","Le plan complet : quotas hebdo Doigts 2-3 · Muscles 3-4 · Gainage 4-5, plan du jour multi-séances, blocs de 3 semaines + décharges, garde-fous blessure. Sur 6 à 16 semaines."],
+        ["force","Force doigts","Rotation force maximale (max hangs, soulevés, pince) avec progression de lest par RPE. Cycles 6-16 sem."],
+        ["mixte","Mixte doigts","Alternance force / force-endurance des doigts, tous outils. Cycles 6-16 sem."],
+        ["endurance","Endurance doigts","Répéteurs, continuité et capacité. Cycles 6-16 sem."]
+      ];
+      const info = cycleInfo();
+      return PLANS.map(([k,name,desc])=>{
+        const active = plan && plan.goal===k;
+        const state = active ? (info ? `Actif · sem. ${info.week+1}/${info.total} · ${esc(info.blockName)}` : "Actif · sans cycle") : "";
+        return `<div class="card" style="margin-top:10px;${active?"border-color:var(--cool-deep)":""}">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:800;font-size:15px">${name}${active?` <span class="rec-badge cool" style="margin-left:6px">Actif</span>`:""}</div>
+              ${state?`<div class="mono" style="font-size:11px;color:var(--cool-deep);font-weight:700;margin-top:3px">${state}</div>`:""}
+              <div style="font-size:12.5px;color:var(--muted);margin-top:4px">${desc}</div>
+            </div>
+            <button class="btn ${active?"btn-ghost":"btn-primary"} btn-sm plan-choose" data-g="${k}">${active?"Régler":"Activer"}</button>
+          </div>
+        </div>`;
+      }).join("");
+    })()}
+    <h2>Exercices par famille</h2>
     <p class="hint" style="text-align:left;margin:0 0 4px">Déplie une famille, tape une ligne pour la fiche complète (technique, gains, modifier), ou Go pour démarrer directement.</p>
     ${CATS.map(([cat,label])=>{
       const list = programs.filter(p=>(p.cat||"poutre")===cat);
@@ -1188,6 +1245,7 @@ function renderPrograms(){
     }).join("")}
     <button class="btn btn-ghost btn-block" id="newBtn" style="margin-top:14px">+ Créer un programme</button>
   `;
+  view.querySelectorAll(".plan-choose").forEach(b=>b.onclick=()=>openPlanSheet(b.dataset.g));
   view.querySelectorAll(".acc").forEach(b=>b.onclick=()=>{
     const c=b.dataset.cat; accOpen[c]=!accOpen[c]; store.set("accOpen",accOpen); b.classList.toggle("open");
   });
@@ -1214,11 +1272,11 @@ function prow(p){
 function renderProgress(){
   const total=sessions.length;
   const totalHang=sessions.reduce((a,x)=>a+(x.hangTimeSec||0),0);
-  const streak=computeStreak();
+  const streak=weekFullStreak();
   view.innerHTML = `
     <div class="topbar"><div><div class="eyebrow">Suivi <span class="ver">${APP_VERSION}</span></div><h1>Progrès</h1></div></div>
     <div class="chips" style="margin-bottom:6px">
-      <div class="chip cool"><div class="n">${streak}</div><div class="l">Jours de suite</div></div>
+      <div class="chip cool"><div class="n">${streak}</div><div class="l">Semaines OK</div></div>
       <div class="chip"><div class="n">${total}</div><div class="l">Séances</div></div>
       <div class="chip amber"><div class="n">${Math.round(totalHang/60)}</div><div class="l">Min d'effort</div></div>
     </div>
@@ -1261,6 +1319,17 @@ function renderProgress(){
         ${sessions.map(histRow).join("")}
       </div>
     `}
+    <h2>Réglages</h2>
+    <div class="card">
+      <div class="field"><label>Thème</label><div class="goalseg" id="setTheme">
+        <button data-v="light" class="${settings.theme!=="dark"?"on":""}">Clair</button>
+        <button data-v="dark" class="${settings.theme==="dark"?"on":""}">Sombre</button>
+      </div></div>
+      <div class="row2">
+        <button class="cyctoggle ${settings.sound?"on":""}" id="setSound"><span>Sons</span><span class="sw"></span></button>
+        <button class="cyctoggle ${settings.vibrate?"on":""}" id="setVib"><span>Vibrations</span><span class="sw"></span></button>
+      </div>
+    </div>
     <h2>Bilans de force</h2>
     <div class="card" style="padding:${tests.length?"8px 14px":"16px"}">
       ${tests.length ? `
@@ -1294,6 +1363,14 @@ function renderProgress(){
   if(total>0){ requestAnimationFrame(drawChart); bindHist(); }
   bindBackup();
   const pt=document.getElementById("pgTest"); if(pt) pt.onclick=openTestSheet;
+  const th=document.getElementById("setTheme");
+  if(th) th.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    settings.theme=b.dataset.v; store.set("settings",settings); applyTheme(); render();
+  });
+  const ss=document.getElementById("setSound");
+  if(ss) ss.onclick=()=>{ settings.sound=!settings.sound; store.set("settings",settings); ss.classList.toggle("on",settings.sound); if(settings.sound) audio.go(); };
+  const sv=document.getElementById("setVib");
+  if(sv) sv.onclick=()=>{ settings.vibrate=!settings.vibrate; store.set("settings",settings); sv.classList.toggle("on",settings.vibrate); if(settings.vibrate) vibrate(60); };
 }
 function histRow(s){
   return `<div class="hist" data-sid="${s.id}">
@@ -1337,14 +1414,15 @@ function drawChart(){
   cv.width=W*dpr; cv.height=H*dpr;
   const g=cv.getContext("2d"); g.scale(dpr,dpr);
   g.clearRect(0,0,W,H);
+  const ink=chartInk();
   const padL=34,padR=34,padT=18,padB=34;
   const cw=W-padL-padR, ch=H-padT-padB;
   const maxKg=Math.max(10,...data.map(d=>Math.abs(d.loadKg)));
   const maxMin=Math.max(1,...data.map(d=>d.hangTimeSec/60));
   // grille
-  g.strokeStyle="rgba(28,35,45,.08)"; g.lineWidth=1; g.font="600 10px "+"'JetBrains Mono',monospace";
+  g.strokeStyle=ink.grid; g.lineWidth=1; g.font="600 10px "+"'JetBrains Mono',monospace";
   for(let i=0;i<=3;i++){ const y=padT+ch*i/3; g.beginPath(); g.moveTo(padL,y); g.lineTo(padL+cw,y); g.stroke();
-    g.fillStyle="#7A828E"; g.textAlign="right"; g.fillText(Math.round(maxKg*(1-i/3)),padL-6,y+3); }
+    g.fillStyle=ink.label; g.textAlign="right"; g.fillText(Math.round(maxKg*(1-i/3)),padL-6,y+3); }
   const n=data.length, slot=cw/Math.max(1,n), bw=Math.min(20,slot*0.42);
   data.forEach((d,i)=>{
     const cx=padL+slot*i+slot/2;
@@ -1355,7 +1433,7 @@ function drawChart(){
     const hM=(d.hangTimeSec/60)/maxMin*ch;
     g.fillStyle="#14B8A2"; roundRect(g,cx+1,padT+ch-hM,bw,hM,4);
     // date
-    g.fillStyle="#7A828E"; g.textAlign="center"; g.font="600 9px 'JetBrains Mono',monospace";
+    g.fillStyle=ink.label; g.textAlign="center"; g.font="600 9px 'JetBrains Mono',monospace";
     const dd=new Date(d.dateISO); g.fillText(dd.getDate()+"/"+(dd.getMonth()+1),cx,H-12);
   });
 }
@@ -1364,20 +1442,21 @@ function drawDetChart(hist){
   const dpr=window.devicePixelRatio||1, W=cv.clientWidth, H=150;
   cv.width=W*dpr; cv.height=H*dpr;
   const g=cv.getContext("2d"); g.scale(dpr,dpr); g.clearRect(0,0,W,H);
+  const ink=chartInk();
   const padL=30,padR=8,padT=22,padB=24, cw=W-padL-padR, ch=H-padT-padB;
   const maxKg=Math.max(4,...hist.map(s=>Math.abs(s.loadKg)));
-  g.strokeStyle="rgba(28,35,45,.08)"; g.lineWidth=1;
+  g.strokeStyle=ink.grid; g.lineWidth=1;
   for(let i=0;i<=2;i++){ const y=padT+ch*i/2; g.beginPath(); g.moveTo(padL,y); g.lineTo(padL+cw,y); g.stroke();
-    g.fillStyle="#7A828E"; g.font="600 9px 'JetBrains Mono',monospace"; g.textAlign="right";
+    g.fillStyle=ink.label; g.font="600 9px 'JetBrains Mono',monospace"; g.textAlign="right";
     g.fillText(Math.round(maxKg*(1-i/2)),padL-5,y+3); }
   const n=hist.length, slot=cw/n, bw=Math.min(22,slot*0.55);
   hist.forEach((s,i)=>{
     const cx=padL+slot*i+slot/2, h=Math.abs(s.loadKg)/maxKg*ch;
     g.fillStyle = s.loadKg<0 ? "#3aa0d6" : "#E84E2A";
     roundRect(g,cx-bw/2,padT+ch-h,bw,Math.max(3,h),4);
-    g.fillStyle="#5D6774"; g.textAlign="center"; g.font="700 9px 'JetBrains Mono',monospace";
+    g.fillStyle=ink.strong; g.textAlign="center"; g.font="700 9px 'JetBrains Mono',monospace";
     g.fillText("R"+s.rpe,cx,padT+ch-h-5);
-    g.fillStyle="#98A0AB"; g.font="600 8.5px 'JetBrains Mono',monospace";
+    g.fillStyle=ink.label; g.font="600 8.5px 'JetBrains Mono',monospace";
     const d=new Date(s.dateISO); g.fillText(d.getDate()+"/"+(d.getMonth()+1),cx,H-9);
   });
 }
