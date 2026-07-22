@@ -345,7 +345,7 @@ canvas{width:100%;display:block}
    avec repli mémoire (fonctionne aussi en aperçu sandbox).
    ============================================================ */
 
-const APP_VERSION = "v18"; // incrémentée à chaque mise à jour — doit correspondre au cache du service worker
+const APP_VERSION = "v19"; // incrémentée à chaque mise à jour — doit correspondre au cache du service worker
 
 /* ---------- Persistance ---------- */
 const store = (() => {
@@ -1094,6 +1094,7 @@ function renderTrain(){
       <button class="btn btn-ghost btn-sm" id="installBtn">Installer</button>
     </div>
     ${backupBanner()}
+    ${testBanner()}
     ${recCard(rec)}
     <div class="chips" style="margin-top:12px">
       <div class="chip cool"><div class="n">${s}</div><div class="l">Jours de suite</div></div>
@@ -1121,6 +1122,7 @@ function renderTrain(){
   `;
   bindRec(rec);
   bindBackupBanner();
+  bindTestBanner();
   const fb=document.getElementById("freeBtn"); if(fb) fb.onclick=openFreeSheet;
   [["tgtDoigts","doigts"],["tgtHaut","haut"],["tgtCore","gainage"]].forEach(([id,pool])=>{
     const b=document.getElementById(id); if(!b) return;
@@ -1259,6 +1261,25 @@ function renderProgress(){
         ${sessions.map(histRow).join("")}
       </div>
     `}
+    <h2>Bilans de force</h2>
+    <div class="card" style="padding:${tests.length?"8px 14px":"16px"}">
+      ${tests.length ? `
+        <div class="wgrid" style="border-bottom:1px solid var(--line-strong)"><span class="wl">Date</span><span class="wl">Susp.</span><span class="wl">Pince</span><span class="wl">Tract.</span><span class="wl">Planche</span></div>
+        ${tests.slice(0,8).map((t,i)=>{
+          const prev=tests[i+1];
+          const cell=(v,pv,unit)=>{ const d=prev?v-pv:0;
+            return `<b class="${d>0?"ok":d<0?"ko":""}">${v}${unit}${prev&&d!==0?`<span style="font-size:9px"> ${d>0?"+":""}${d}</span>`:""}</b>`; };
+          const dd=new Date(t.dateISO);
+          return `<div class="wgrid"><span class="wl">${dd.getDate()}/${dd.getMonth()+1}</span>
+            ${cell(t.hangKg, prev&&prev.hangKg, "")}
+            ${cell(t.pinchKg, prev&&prev.pinchKg, "")}
+            ${cell(t.pullKg, prev&&prev.pullKg, "")}
+            ${cell(t.plankSec, prev&&prev.plankSec, "s")}</div>`;
+        }).join("")}
+        <p class="hint" style="text-align:left;margin:8px 0 6px">Lests en kg. Vert = progression depuis le bilan précédent.</p>`
+      : `<p style="font-size:13.5px;color:var(--muted);margin-bottom:12px">Aucun bilan pour l'instant. Quatre mesures standardisées (suspension, pince, traction, planche) répétées toutes les ~6 semaines : la seule preuve objective que le programme fonctionne.</p>`}
+      <button class="btn btn-ghost btn-block" id="pgTest">${tests.length?"Nouveau bilan":"Faire mon premier bilan"}</button>
+    </div>
     <h2>Sauvegarde</h2>
     <div class="card">
       <p style="font-size:13.5px;color:var(--muted);margin-bottom:12px">Tes données vivent uniquement sur cet appareil. Exporte-les régulièrement — un fichier JSON à garder sur Drive, iCloud ou ailleurs — et réimporte-les sur un nouveau téléphone. L'import fusionne sans rien effacer.</p>
@@ -1272,6 +1293,7 @@ function renderProgress(){
   `;
   if(total>0){ requestAnimationFrame(drawChart); bindHist(); }
   bindBackup();
+  const pt=document.getElementById("pgTest"); if(pt) pt.onclick=openTestSheet;
 }
 function histRow(s){
   return `<div class="hist" data-sid="${s.id}">
@@ -1501,6 +1523,63 @@ function bindSteppers(onChange){
   });
 }
 
+/* ---------- Bilans de force ---------- */
+let tests = store.get("tests", []);
+let testMeta = store.get("testMeta", { snoozeUntilISO:null });
+function saveT(){ store.set("tests", tests); }
+function needTestReminder(){
+  if(sessions.length < 8) return false;
+  if(testMeta.snoozeUntilISO && new Date(testMeta.snoozeUntilISO) > new Date()) return false;
+  if(!tests.length) return true;
+  return (Date.now() - new Date(tests[0].dateISO).getTime())/864e5 >= 42;
+}
+function testBanner(){
+  if(!needTestReminder()) return "";
+  const txt = tests.length
+    ? `Ton dernier bilan date d'il y a ${Math.round((Date.now()-new Date(tests[0].dateISO))/864e5/7)} semaines. Re-mesure pour voir les gains réels du cycle.`
+    : "Tu as assez d'historique pour poser une première référence : 4 mesures simples qui serviront d'étalon à toute ta progression.";
+  return `<div class="card" style="border-color:rgba(20,184,162,.45)">
+    <div class="rec-head"><div class="rec-badge cool">Bilan de force</div></div>
+    <p class="rec-txt" style="margin-top:2px">${txt}</p>
+    <div class="row2">
+      <button class="btn btn-ghost btn-sm" id="tsLater">Plus tard</button>
+      <button class="btn btn-primary btn-sm" id="tsGo">Faire le bilan</button>
+    </div>
+  </div>`;
+}
+function bindTestBanner(){
+  const go=document.getElementById("tsGo"), later=document.getElementById("tsLater");
+  if(go) go.onclick=openTestSheet;
+  if(later) later.onclick=()=>{ testMeta.snoozeUntilISO=new Date(Date.now()+14*864e5).toISOString(); store.set("testMeta",testMeta); render(); toast("Rappel dans 2 semaines"); };
+}
+function openTestSheet(){
+  const last = tests[0] || { hangKg:0, pinchKg:15, pullKg:0, plankSec:60 };
+  sheet(`
+    <h3>Bilan de force</h3>
+    <div class="sub">À faire frais, après un échauffement complet. Monte progressivement vers chaque max — 3 min de repos entre les essais. Mêmes conditions à chaque bilan pour comparer honnêtement.</div>
+    ${stepper("t_hang","Suspension 10 s — lest total (réglette 20 mm)","kg",last.hangKg,-60,120,1)}
+    <p class="hint" style="text-align:left;margin:-6px 0 12px">Lest max tenu 10 s propres en semi-arqué. Négatif si allégé à l'élastique.</p>
+    ${stepper("t_pinch","Pince 7 s — charge soulevée (Mini Crux)","kg",last.pinchKg,0,100,1)}
+    <p class="hint" style="text-align:left;margin:-6px 0 12px">Charge max soulevée 7 s en pince, main la plus faible.</p>
+    ${stepper("t_pull","Traction — lest pour 2 reps propres","kg",last.pullKg,-40,100,1)}
+    <p class="hint" style="text-align:left;margin:-6px 0 12px">0 = poids du corps. Négatif si assisté à l'élastique.</p>
+    ${stepper("t_plank","Planche stricte — tenue max","s",last.plankSec,10,600,5)}
+    <p class="hint" style="text-align:left;margin:-6px 0 12px">Planche face parfaite : chrono arrêté dès que le bassin bouge.</p>
+    <div class="row2">
+      <button class="btn btn-ghost" id="t_cancel">Annuler</button>
+      <button class="btn btn-primary" id="t_save">Enregistrer le bilan</button>
+    </div>
+  `);
+  bindSteppers();
+  document.getElementById("t_cancel").onclick=closeSheet;
+  document.getElementById("t_save").onclick=()=>{
+    tests.unshift({ id:uid(), dateISO:new Date().toISOString(),
+      hangKg:step.val.t_hang, pinchKg:step.val.t_pinch, pullKg:step.val.t_pull, plankSec:step.val.t_plank });
+    saveT(); testMeta.snoozeUntilISO=null; store.set("testMeta",testMeta);
+    closeSheet(); tab="progress"; render(); toast("Bilan enregistré 📈");
+  };
+}
+
 /* ---------- Sauvegarde : export / import JSON ---------- */
 let backupMeta = store.get("backupMeta", { lastExportISO:null, snoozeUntilISO:null });
 function saveBk(){ store.set("backupMeta", backupMeta); }
@@ -1520,7 +1599,7 @@ function needBackupReminder(){
 }
 function doExport(){
   const data={ app:"poutre", version:APP_VERSION, exportedAt:new Date().toISOString(),
-    programs, sessions, plan, settings };
+    programs, sessions, plan, settings, tests };
   const blob=new Blob([JSON.stringify(data,null,1)],{type:"application/json"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
@@ -1549,6 +1628,11 @@ function bindBackup(){
         d.sessions.forEach(x=>{ if(x && x.id && x.dateISO && !sIds.has(x.id)){ sessions.push(x); addedS++; } });
         sessions.sort((a,b)=>new Date(b.dateISO)-new Date(a.dateISO));
         d.programs.forEach(p=>{ if(!p||!p.id) return; const i=programs.findIndex(x=>x.id===p.id); if(i>=0) programs[i]=p; else programs.push(p); });
+        if(Array.isArray(d.tests)){
+          const tIds=new Set(tests.map(x=>x.id));
+          d.tests.forEach(x=>{ if(x&&x.id&&!tIds.has(x.id)) tests.push(x); });
+          tests.sort((a,b)=>new Date(b.dateISO)-new Date(a.dateISO)); saveT();
+        }
         if(d.plan!==undefined) plan=d.plan;
         if(d.settings) settings={...settings,...d.settings};
         saveS(); saveP(); savePlan(); store.set("settings",settings);
