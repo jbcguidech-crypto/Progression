@@ -505,7 +505,7 @@ html.dark .sheet-bg{background:rgba(3,5,8,.6)}
    avec repli mémoire (fonctionne aussi en aperçu sandbox).
    ============================================================ */
 
-const APP_VERSION = "v36"; // incrémentée à chaque mise à jour — doit correspondre au cache du service worker
+const APP_VERSION = "v37"; // incrémentée à chaque mise à jour — doit correspondre au cache du service worker
 
 /* ---------- Persistance ---------- */
 const store = (() => {
@@ -1034,18 +1034,19 @@ function weekCountsAt(monTime){
   const end = monTime + 7*864e5;
   const c={doigts:0,tirage:0,poussee:0,jambes:0,gainage:0,endurance:0,wod:0,yoga:0,oa:0};
   sessions.forEach(s=>{ const t=new Date(s.dateISO).getTime();
-    if(t>=monTime && t<end){ const d=domainOf(s.programId); if(d) c[d]++; } });
+    if(t>=monTime && t<end){ if(PREP_IDS.has(s.programId)) return; const d=domainOf(s.programId); if(d) c[d]++; } });
   return c;
 }
+const PREP_IDS = new Set(["echauffement","mcx-warm"]); // préparations : jamais comptées comme séances
 function weekCounts(){
   const c={doigts:0,tirage:0,poussee:0,jambes:0,gainage:0,endurance:0,wod:0,yoga:0,oa:0};
-  weekSessions().forEach(s=>{ const d=domainOf(s.programId); if(d) c[d]++; });
+  weekSessions().forEach(s=>{ if(PREP_IDS.has(s.programId)) return; const d=domainOf(s.programId); if(d) c[d]++; });
   return c;
 }
 function generalDayPlan(deload, isDay){
   const counts = weekCounts();
   const todayList = sessions.filter(s=>dayKey(s.dateISO)===dayKey(new Date()));
-  const todayDomains = new Set(todayList.map(s=>domainOf(s.programId)).filter(Boolean));
+  const todayDomains = new Set(todayList.filter(s=>!PREP_IDS.has(s.programId)).map(s=>domainOf(s.programId)).filter(Boolean));
   const slots = [];
   const submax = programs.find(p=>p.id==="submax");
   // v33 : chaque piste a son propre cycle — décharges et activations sélectives
@@ -2270,6 +2271,7 @@ function openTestSheet(){
   const last = tests[0] || { hangKg:0, pinchKg:15, pullKg:0, plankSec:60 };
   sheet(`
     <h3>Bilan de force</h3>
+    <p class="hint" style="text-align:left;margin:4px 0 0">⚠ Jamais à froid : ce sont des efforts maximaux. Fais l'échauffement doigts complet avant de mesurer.</p>
     <div class="sub">À faire frais, après un échauffement complet. Monte progressivement vers chaque max — 3 min de repos entre les essais. Mêmes conditions à chaque bilan pour comparer honnêtement. Repère : un « max » de bilan = RPE 9-10, à une seconde de l'échec.</div>
     ${stepper("t_hang","Suspension 10 s — lest total (réglette 20 mm)","kg",last.hangKg,-60,120,1)}
     <p class="hint" style="text-align:left;margin:-6px 0 12px">Lest max tenu 10 s propres en semi-arqué. Négatif si allégé à l'élastique.</p>
@@ -5025,29 +5027,55 @@ function morningYogaPick(){
   }
   return { style:"hatha", idx:0 };
 }
+function fingerWarmupProg(){
+  const w = programs.find(p=>p.id==="echauffement");
+  if(w && progAvail(w)) return w;
+  const m = programs.find(p=>p.id==="mcx-warm");
+  return (m && progAvail(m)) ? m : w;
+}
+function warmupDoneToday(){
+  return sessions.some(s=>dayKey(s.dateISO)===dayKey(new Date())
+    && (s.programId==="echauffement" || s.programId==="mcx-warm"));
+}
 function morningSteps(){
-  const today = k => weekSessions().some(s=>dayKey(s.dateISO)===dayKey(new Date()) && domainOf(s.programId)===k);
+  const today = k => weekSessions().some(s=>dayKey(s.dateISO)===dayKey(new Date()) && !PREP_IDS.has(s.programId) && domainOf(s.programId)===k);
   const steps = [];
-  steps.push({ k:"bolt", label:"BOLT à froid", sub:"Au réveil, assis, avant tout effort",
+  steps.push({ k:"bolt", label:"BOLT à froid", sub:"Au réveil, assis, avant tout effort — c'est le seul qui se fait à froid",
     done: OA.boltToday() });
+  const y = morningYogaPick(), ys = STYLE_MENUS[y.style].sessions[y.idx];
+  steps.push({ k:"yoga", label:"Yoga d'activation", y, ys,
+    sub:`${ys.name} · ${yogaMin(ys)} min — réveille épaules et poignets`, done: today("yoga") });
   if(trackOn("escalade")){
     const r = todayRec();
     const slot = (r.slots||[]).find(s=>s.domain==="doigts");
-    steps.push({ k:"doigts", label:"Force des doigts", slot,
-      sub: !slot ? "Rien aujourd'hui (garde-fous ou jour off)"
-        : slot.light ? `${slot.prog.name} — léger (récupération en cours)` : slot.prog.name,
-      done: today("doigts") });
+    if(slot){
+      const wu = fingerWarmupProg();
+      steps.push({ k:"warmup", label:"Échauffement doigts", prog:wu,
+        sub:"Montée en charge progressive — obligatoire avant de charger",
+        done: warmupDoneToday() });
+      steps.push({ k:"doigts", label:"Force des doigts", slot,
+        sub: slot.light ? `${slot.prog.name} — léger (récupération en cours)` : slot.prog.name,
+        done: today("doigts"), locked: !warmupDoneToday() && !today("doigts") });
+    } else {
+      steps.push({ k:"doigts", label:"Force des doigts", slot:null,
+        sub:"Rien aujourd'hui (garde-fous ou jour off)", done:false });
+    }
   }
-  const y = morningYogaPick(), ys = STYLE_MENUS[y.style].sessions[y.idx];
-  steps.push({ k:"yoga", label:"Yoga du matin", y, ys,
-    sub:`${ys.name} · ${yogaMin(ys)} min guidées`, done: today("yoga") });
   return steps;
 }
-function morningNext(){ return morningSteps().find(s=>!s.done && (s.k!=="doigts" || s.slot)); }
+function morningNext(){
+  return morningSteps().find(s=>!s.done && !s.locked && (s.k!=="doigts" || s.slot));
+}
 function morningLaunch(st){
   if(!st) return;
   if(st.k==="bolt"){ oaSafetyCheck(()=>OA.openPlayer("bolt")); return; }
+  if(st.k==="warmup" && st.prog){ startSession(st.prog); return; }
   if(st.k==="doigts" && st.slot){
+    if(!warmupDoneToday()){
+      toast("Jamais à froid — échauffement d'abord 🔥");
+      const wu=fingerWarmupProg(); if(wu) startSession(wu);
+      return;
+    }
     const sug=loadSuggestion(st.slot.prog);
     startSession(sug?{...st.slot.prog,addedKg:sug.kg}:st.slot.prog); return;
   }
@@ -5067,10 +5095,10 @@ function morningCardHTML(){
   const nx = morningNext();
   return `<div class="card" style="border-color:rgba(46,127,184,.45)">
     <div class="rec-head"><div class="rec-badge cool">Routine matinale</div></div>
-    ${steps.map((s,i)=>`<div class="slotrow mr-step" data-i="${i}" style="cursor:pointer;${(!s.done&&s.k==="doigts"&&!s.slot)?"opacity:.5":""}">
-      <span class="sdot" style="background:${s.done?"var(--cool)":"var(--line-strong)"}"></span>
-      <div class="smain"><div class="st">${s.done?"✓ ":""}${s.label}</div><div class="ss">${esc(s.sub)}</div></div>
-      ${(!s.done && (s.k!=="doigts"||s.slot))?`<span style="color:var(--muted);font-size:18px">›</span>`:""}
+    ${steps.map((s,i)=>`<div class="slotrow mr-step" data-i="${i}" style="cursor:pointer;${((!s.done&&s.k==="doigts"&&!s.slot)||s.locked)?"opacity:.5":""}">
+      <span class="sdot" style="background:${s.done?"var(--cool)":s.locked?"var(--line)":"var(--line-strong)"}"></span>
+      <div class="smain"><div class="st">${s.done?"✓ ":s.locked?"🔒 ":""}${s.label}</div><div class="ss">${esc(s.sub)}</div></div>
+      ${(!s.done && !s.locked && (s.k!=="doigts"||s.slot))?`<span style="color:var(--muted);font-size:18px">›</span>`:""}
     </div>`).join("")}
     ${nx?`<button class="btn btn-primary btn-block" id="mrGo" style="margin-top:10px">Étape suivante — ${nx.label}</button>`:""}
   </div>`;
