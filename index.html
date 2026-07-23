@@ -505,7 +505,7 @@ html.dark .sheet-bg{background:rgba(3,5,8,.6)}
    avec repli mémoire (fonctionne aussi en aperçu sandbox).
    ============================================================ */
 
-const APP_VERSION = "v35"; // incrémentée à chaque mise à jour — doit correspondre au cache du service worker
+const APP_VERSION = "v36"; // incrémentée à chaque mise à jour — doit correspondre au cache du service worker
 
 /* ---------- Persistance ---------- */
 const store = (() => {
@@ -1648,6 +1648,7 @@ function renderTrain(){
           <div class="mono" style="font-size:12px;color:var(--muted);margin-top:2px">${relDate(last.dateISO)} · ${last.loadKg>0?"+":""}${last.loadKg} kg · ${last.edgeMm} mm · RPE ${last.rpe}</div>
         </div>
       </div>` : ""}
+    ${morningCardHTML()}
     ${equipRestricted()?`<div class="card" style="border-color:rgba(221,154,24,.5)">
       <div class="rec-head"><div class="rec-badge amber">Matériel réduit</div></div>
       <p class="rec-txt" style="margin-top:2px">Le plan du jour est adapté : ${todayEquip.list.length?esc(todayEquip.list.map(equipLabel).join(", ")):"aucun matériel"}. Ça se réinitialise demain.</p>
@@ -1678,6 +1679,7 @@ function renderTrain(){
   const fb=document.getElementById("freeBtn"); if(fb) fb.onclick=openFreeSheet;
   const te=document.getElementById("tgtEndu"); if(te) te.onclick=()=>openCardioSheet();
   const tw=document.getElementById("tgtWod"); if(tw) tw.onclick=openWodList;
+  bindMorning();
   const eb=document.getElementById("eqBtn"); if(eb) eb.onclick=openEquipSheet;
   const ee=document.getElementById("eqEdit"); if(ee) ee.onclick=openEquipSheet;
   const to=document.getElementById("tgtOa"); if(to) to.onclick=openOaHome;
@@ -3838,6 +3840,7 @@ return {
   progGet:(w)=>({ weeks: w==='alt'?altWeeks:apWeeks, level: w==='alt'?altLevel:apLevel, blocks: progData(w) }),
   progSet:setProg,
   boltCount:()=>boltHist.length,
+  boltToday:()=>{ const b=boltHist[boltHist.length-1]; return !!(b && String(b.t||"").slice(0,10)===todayISO()); },
   exportBlob:()=>({ bolt:boltHist, sess:oaSessions, metrics, set:oaSet, timers,
     retmax:load('sf_retmax',null), expmax:load('sf_expmax',null),
     altWeeks, altLevel, apWeeks, apLevel }),
@@ -5005,6 +5008,79 @@ function openWodLog(b,isScore){
     const isPR = val!=null && (!prev || (isScore ? val>prev.val : val<prev.val));
     toast(isPR ? "Nouveau record 🏆" : "WOD enregistré 🔥");
   };
+}
+
+/* ---------- Routine matinale : BOLT à froid → force des doigts → yoga ---------- */
+function logYogaQuick(styleKey, s, mins){
+  sessions.unshift({ id:uid(), programId:"yoga", programName:s.name, dateISO:new Date().toISOString(),
+    grip:STYLE_MENUS[styleKey].title, edgeMm:0, loadKg:0, rpe:3, completedReps:s.poses.length,
+    totalReps:s.poses.length, hangTimeSec:mins*60, yogaStyle:styleKey, minutes:mins,
+    pain:0, painNote:"", notes:"" });
+  saveS();
+}
+function morningYogaPick(){
+  if(trackOn("escalade")){
+    const i = STYLE_MENUS.sport.sessions.findIndex(x=>x.name==="Escalade — avant");
+    if(i>=0) return { style:"sport", idx:i };
+  }
+  return { style:"hatha", idx:0 };
+}
+function morningSteps(){
+  const today = k => weekSessions().some(s=>dayKey(s.dateISO)===dayKey(new Date()) && domainOf(s.programId)===k);
+  const steps = [];
+  steps.push({ k:"bolt", label:"BOLT à froid", sub:"Au réveil, assis, avant tout effort",
+    done: OA.boltToday() });
+  if(trackOn("escalade")){
+    const r = todayRec();
+    const slot = (r.slots||[]).find(s=>s.domain==="doigts");
+    steps.push({ k:"doigts", label:"Force des doigts", slot,
+      sub: !slot ? "Rien aujourd'hui (garde-fous ou jour off)"
+        : slot.light ? `${slot.prog.name} — léger (récupération en cours)` : slot.prog.name,
+      done: today("doigts") });
+  }
+  const y = morningYogaPick(), ys = STYLE_MENUS[y.style].sessions[y.idx];
+  steps.push({ k:"yoga", label:"Yoga du matin", y, ys,
+    sub:`${ys.name} · ${yogaMin(ys)} min guidées`, done: today("yoga") });
+  return steps;
+}
+function morningNext(){ return morningSteps().find(s=>!s.done && (s.k!=="doigts" || s.slot)); }
+function morningLaunch(st){
+  if(!st) return;
+  if(st.k==="bolt"){ oaSafetyCheck(()=>OA.openPlayer("bolt")); return; }
+  if(st.k==="doigts" && st.slot){
+    const sug=loadSuggestion(st.slot.prog);
+    startSession(sug?{...st.slot.prog,addedKg:sug.kg}:st.slot.prog); return;
+  }
+  if(st.k==="yoga"){
+    YogaPlayer.start(resolvePoses(st.ys.poses), st.ys.name,
+      (stats)=>{ logYogaQuick(st.y.style, st.ys, stats.mins); toast("Yoga enregistré 🧘"); },
+      ()=>render());
+  }
+}
+function morningCardHTML(){
+  if(!anyTrackOn()) return "";
+  const steps = morningSteps();
+  const allDone = steps.every(s=>s.done || (s.k==="doigts" && !s.slot));
+  if(allDone) return `<div class="card" style="border-color:rgba(20,184,162,.4)">
+    <div class="rec-head"><div class="rec-badge cool">Routine matinale ✓</div></div>
+    <p class="rec-txt" style="margin-top:2px">BOLT, doigts et yoga : tout est fait. Belle matinée.</p></div>`;
+  const nx = morningNext();
+  return `<div class="card" style="border-color:rgba(46,127,184,.45)">
+    <div class="rec-head"><div class="rec-badge cool">Routine matinale</div></div>
+    ${steps.map((s,i)=>`<div class="slotrow mr-step" data-i="${i}" style="cursor:pointer;${(!s.done&&s.k==="doigts"&&!s.slot)?"opacity:.5":""}">
+      <span class="sdot" style="background:${s.done?"var(--cool)":"var(--line-strong)"}"></span>
+      <div class="smain"><div class="st">${s.done?"✓ ":""}${s.label}</div><div class="ss">${esc(s.sub)}</div></div>
+      ${(!s.done && (s.k!=="doigts"||s.slot))?`<span style="color:var(--muted);font-size:18px">›</span>`:""}
+    </div>`).join("")}
+    ${nx?`<button class="btn btn-primary btn-block" id="mrGo" style="margin-top:10px">Étape suivante — ${nx.label}</button>`:""}
+  </div>`;
+}
+function bindMorning(){
+  const steps = morningSteps();
+  document.querySelectorAll(".mr-step").forEach(el=>el.onclick=()=>{
+    const s=steps[+el.dataset.i]; if(s && !s.done) morningLaunch(s);
+  });
+  const g=document.getElementById("mrGo"); if(g) g.onclick=()=>morningLaunch(morningNext());
 }
 
 /* ---------- Interface OA (feuilles Poutre pilotant le module scellé) ---------- */
